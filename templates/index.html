@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Emotion Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Emotion Detection</h1>
+        <div class="video-container">
+            <!-- Using img to display the live video feed from the backend -->
+            <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Real-time video feed" width="640" height="480">
+        </div>
+        <div class="instructions">
+            <p>This system detects emotions in real-time using your webcam.</p>
+            <p>Make sure your face is clearly visible for best results.</p>
+            <div id="apiStatus" style="margin-top: 10px; padding: 8px; border-radius: 4px; background-color: #f0f0f0;">
+                <strong>API Status:</strong> <span id="apiStatusText">Loading...</span>
+            </div>
+        </div>
+
+        <div class="analytics">
+            <h2>Emotion Analytics (Session)</h2>
+            <div style="margin-bottom:10px;">
+                <label for="identityFilter" style="margin-right:8px;">Filter Identity:</label>
+                <select id="identityFilter">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+                <div style="max-width:360px; width:100%;">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div style="max-width:560px; width:100%;">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+            <p id="sessionStart" style="color:#666; font-size:14px; margin-top:10px;"></p>
+            <div style="margin-top:10px; overflow-x:auto;">
+                <table id="summaryTable" style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px;">Identity</th>
+                            <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px;">Emotion</th>
+                            <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px;">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="./index.js"></script>
+</body>
+</html>
