@@ -94,300 +94,10 @@ def _send_frame_to_ngrok_api(frame, api_url):
         return None
 
 
-def _open_camera_with_fallback():
-    """Try opening camera with multiple indices and backends (Windows friendly)."""
-    # Prioritize DirectShow for Windows (berdasarkan test), then others
-    preferred_backends = [ cv2.CAP_MSMF,cv2.CAP_DSHOW, cv2.CAP_ANY]
-    indices_to_try = [0, 1, 2]
-    
-    print("🔍 Mencoba membuka camera...")
-    
-    # Try with specific backends first
-    for backend in preferred_backends:
-        backend_name = {
-            cv2.CAP_DSHOW: "DirectShow",
-            cv2.CAP_MSMF: "Media Foundation", 
-            cv2.CAP_ANY: "Any Available"
-        }.get(backend, f"Backend {backend}")
-        
-        for idx in indices_to_try:
-            try:
-                print(f"  Mencoba {backend_name} pada index {idx}...")
-                cap = cv2.VideoCapture(idx, backend)
-                
-                if cap.isOpened():
-                    # Test if we can actually read a frame dengan retry
-                    retry_count = 0
-                    max_retries = 3
-                    success = False
-                    
-                    while retry_count < max_retries and not success:
-                        ret, frame = cap.read()
-                        if ret and frame is not None and frame.size > 0:
-                            success = True
-                        else:
-                            retry_count += 1
-                            time.sleep(0.1)  # Tunggu sebentar sebelum retry
-                    
-                    if success:
-                        print(f"✅ Camera berhasil dibuka dengan {backend_name} pada index {idx}")
-                        # Set camera properties for better performance
-                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                        cap.set(cv2.CAP_PROP_FPS, 30)
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer size
-                        return cap
-                    else:
-                        print(f"  ❌ Tidak bisa membaca frame dari {backend_name} index {idx} setelah {max_retries} percobaan")
-                cap.release()
-            except Exception as e:
-                print(f"  ❌ Error dengan {backend_name} index {idx}: {e}")
-                pass
-    
-    # Fallback: try default constructor without backend
-    print("  Mencoba default backend...")
-    try:
-        cap = cv2.VideoCapture(0)
-        if cap.isOpened():
-            # Test dengan retry juga
-            retry_count = 0
-            max_retries = 3
-            success = False
-            
-            while retry_count < max_retries and not success:
-                ret, frame = cap.read()
-                if ret and frame is not None and frame.size > 0:
-                    success = True
-                else:
-                    retry_count += 1
-                    time.sleep(0.1)
-            
-            if success:
-                print("✅ Camera berhasil dibuka dengan default backend")
-                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                cap.set(cv2.CAP_PROP_FPS, 30)
-                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                return cap
-        cap.release()
-    except Exception as e:
-        print(f"❌ Error dengan default backend: {e}")
-    
-    print("⚠️  Peringatan: Tidak ada camera yang bisa dibuka")
-    return None
+# Camera functions removed - now using client-side camera
 
 
-def generate_frames():
-    cap = _open_camera_with_fallback()
-    if cap is None or not cap.isOpened():
-        print("❌ Error: Tidak bisa mengakses camera")
-        # Return error frame instead of breaking
-        error_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(error_frame, "Camera tidak tersedia", (50, 240), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        ret, buffer = cv2.imencode('.jpg', error_frame)
-        frame_bytes = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        return
-
-    last_saved_ts = 0.0
-    save_interval_seconds = 5.0
-    frame_count = 0
-    recognition_interval_frames = 10  # Kurangi frekuensi untuk performa
-    recognized_label = "Unknown"
-    recognized_distance = None
-    emotion_history: deque[str] = deque(maxlen=5)
-    consecutive_failures = 0
-    max_consecutive_failures = 20  # Tingkatkan tolerance
-    frame_skip_count = 0
-    max_frame_skips = 5
-
-    print("🎥 Memulai video stream...")
-    
-    # Tunggu sebentar untuk camera stabil
-    print("⏳ Menunggu camera stabil...")
-    time.sleep(2)
-    
-    while True:
-        try:
-            success, frame = cap.read()  # Read a frame from the webcam
-            if not success:
-                consecutive_failures += 1
-                frame_skip_count += 1
-                
-                if frame_skip_count <= max_frame_skips:
-                    print(f"⏭️  Skip frame {frame_skip_count}/{max_frame_skips}")
-                    time.sleep(0.05)  # Tunggu lebih singkat
-                    continue
-                else:
-                    print(f"⚠️  Gagal membaca frame ({consecutive_failures}/{max_consecutive_failures})")
-                    if consecutive_failures >= max_consecutive_failures:
-                        print("❌ Terlalu banyak kegagalan, menghentikan stream")
-                        break
-                    time.sleep(0.1)  # Tunggu sebentar sebelum coba lagi
-                    frame_skip_count = 0  # Reset skip counter
-                    continue
-            
-            # Reset counters jika berhasil
-            consecutive_failures = 0
-            frame_skip_count = 0
-            
-        except Exception as e:
-            print(f"❌ Error membaca frame: {e}")
-            consecutive_failures += 1
-            if consecutive_failures >= max_consecutive_failures:
-                break
-            continue
-        
-        try:
-            # Try to use ngrok API first if configured (hanya setiap beberapa frame)
-            if API_BASE_URL != 'http://localhost:5000' and frame_count % 5 == 0:
-                api_result = _send_frame_to_ngrok_api(frame, API_BASE_URL)
-                if api_result and 'emotion' in api_result:
-                    emotion = api_result['emotion']
-                    print(f"🎯 Emotion dari Colab: {emotion}")
-                else:
-                    # Fallback to local DeepFace jika ngrok gagal
-                    print("🔄 Fallback ke local processing...")
-                    result = DeepFace.analyze(
-                        frame,
-                        actions=['emotion'],
-                        detector_backend='opencv',
-                        enforce_detection=False,
-                        silent=True
-                    )
-                    emotion = result[0]['dominant_emotion']
-            else:
-                # Use local DeepFace untuk frame lainnya
-                if frame_count % 10 == 0:  # Hanya proses setiap 10 frame untuk performa
-                    result = DeepFace.analyze(
-                        frame,
-                        actions=['emotion'],
-                        detector_backend='opencv',
-                        enforce_detection=False,
-                        silent=True
-                    )
-                    emotion = result[0]['dominant_emotion']
-                else:
-                    # Gunakan emotion terakhir jika tidak memproses frame ini
-                    emotion = emotion_history[-1] if emotion_history else "unknown"
-            
-            emotion_history.append(emotion)
-            # Smoothing using mode of recent emotions
-            if len(emotion_history) > 0:
-                emotion = Counter(emotion_history).most_common(1)[0][0]
-            
-            # Add emotion text overlay to the frame
-            cv2.putText(frame, f'Emotion: {emotion}', (30, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            
-            # Tampilkan status processing
-            status_text = "Colab" if API_BASE_URL != 'http://localhost:5000' and frame_count % 5 == 0 else "Local"
-            cv2.putText(frame, f'Mode: {status_text}', (30, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
-                        
-        except Exception as e:
-            print(f"❌ Error dengan emotion detection: {e}")
-            emotion = "unknown"
-            cv2.putText(frame, f'Error: {str(e)[:30]}...', (30, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-        # Periodically run face recognition (1:N) against gallery
-        try:
-            if frame_count % recognition_interval_frames == 0:
-                # Detect faces and use cropped ROI(s) for matching to handle small/distant faces
-                detections = DeepFace.extract_faces(
-                    img_path=frame,
-                    detector_backend='opencv',
-                    align=True,
-                    enforce_detection=False
-                )
-                roi_list = []
-                for det in detections:
-                    face_img = det.get('face')
-                    if face_img is None:
-                        continue
-                    # face_img is RGB float [0..1]; convert to BGR uint8
-                    face_bgr = (face_img[:, :, ::-1] * 255).astype('uint8')
-                    roi_list.append(face_bgr)
-
-                if not roi_list:
-                    roi_list = [frame]
-
-                best_name = "Unknown"
-                best_distance = None
-                threshold = 0.5
-                for roi in roi_list:
-                    results = DeepFace.find(
-                        roi,
-                        db_path=GALLERY_DIR,
-                        model_name='ArcFace',
-                        detector_backend='opencv',
-                        distance_metric='cosine',
-                        enforce_detection=False,
-                        silent=True
-                    )
-                    df = results[0] if isinstance(results, list) else results
-                    if df is not None and hasattr(df, 'empty') and not df.empty:
-                        top = df.iloc[0]
-                        identity_path = str(top.get('identity', ''))
-                        distance = top.get('distance', None)
-                        if identity_path:
-                            try:
-                                person_name = os.path.basename(os.path.dirname(identity_path))
-                            except Exception:
-                                person_name = os.path.splitext(os.path.basename(identity_path))[0]
-                            if distance is None or distance <= threshold:
-                                if best_distance is None or (distance is not None and distance < best_distance):
-                                    best_name = person_name
-                                    best_distance = distance
-                if best_distance is not None:
-                    recognized_label = best_name
-                    recognized_distance = best_distance
-                else:
-                    recognized_label = "Unknown"
-                    recognized_distance = None
-        except Exception as e:
-            print("Error with face recognition:", e)
-
-        # Overlay recognized name + distance
-        id_text = f'ID: {recognized_label}' + (f' ({recognized_distance:.2f})' if recognized_distance is not None else '')
-        cv2.putText(frame, id_text, (30, 90),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-
-        # Periodic snapshot capture and logging
-        now = time.time()
-        if now - last_saved_ts >= save_interval_seconds:
-            last_saved_ts = now
-            timestamp_iso = time.strftime('%Y-%m-%dT%H-%M-%S', time.localtime(now))
-            filename = f"{timestamp_iso}_{emotion}.jpg"
-            file_path = os.path.join(UPLOADS_DIR, filename)
-
-            try:
-                # Save current frame as JPEG
-                cv2.imwrite(file_path, frame)
-                # Store relative path for portability
-                relative_path = os.path.join('uploads', filename)
-                _append_csv_log(timestamp_iso, emotion, relative_path, recognized_label)
-            except Exception as save_err:
-                print("Error saving snapshot or logging:", save_err)
-
-        # Convert the frame to JPEG format for the web stream
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        frame_count += 1
-
-        # Yield the frame as part of the MJPEG stream
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    
-    # Cleanup ketika loop berakhir
-    print("🧹 Membersihkan resources...")
-    if cap:
-        cap.release()
-    print("✅ Video stream berakhir")
+# Video stream function removed - now using client-side camera
 
 @app.route('/')
 def index():
@@ -395,18 +105,12 @@ def index():
     SESSION_START_TS = time.time()
     return render_template('index.html')
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), 
-                   mimetype='multipart/x-mixed-replace; boundary=frame')
+# Video feed endpoint removed - now using client-side camera
 
 @app.route('/camera/health')
 def camera_health():
-    cap = _open_camera_with_fallback()
-    ok = bool(cap and cap.isOpened())
-    if ok:
-        cap.release()
-    return jsonify({'camera': 'ok' if ok else 'unavailable'}), (200 if ok else 503)
+    # Camera health check no longer needed with client-side camera
+    return jsonify({'camera': 'client-side', 'status': 'ok'}), 200
 
 @app.route('/config')
 def get_config():
@@ -415,8 +119,9 @@ def get_config():
     return jsonify({
         'apiBaseUrl': API_BASE_URL,
         'isNgrok': is_ngrok,
-        'cameraAvailable': bool(_open_camera_with_fallback() and _open_camera_with_fallback().isOpened()),
-        'status': 'ngrok' if is_ngrok else 'local'
+        'cameraAvailable': True,  # Client-side camera is always available
+        'status': 'ngrok' if is_ngrok else 'local',
+        'cameraType': 'client-side'
     })
 
 @app.route('/analyze_emotion', methods=['POST'])
@@ -445,9 +150,143 @@ def analyze_emotion():
         )
         
         emotion = result[0]['dominant_emotion']
+        
+        # Optional: Save frame and log emotion (for analytics)
+        if SESSION_START_TS is not None:
+            try:
+                now = time.time()
+                timestamp_iso = time.strftime('%Y-%m-%dT%H-%M-%S', time.localtime(now))
+                filename = f"{timestamp_iso}_{emotion}.jpg"
+                file_path = os.path.join(UPLOADS_DIR, filename)
+                
+                # Save frame
+                cv2.imwrite(file_path, frame)
+                relative_path = os.path.join('uploads', filename)
+                
+                # Log to CSV
+                _append_csv_log(timestamp_iso, emotion, relative_path, "Client-Side")
+            except Exception as save_err:
+                print(f"Error saving client-side frame: {save_err}")
+        
         return jsonify({'emotion': emotion})
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/analyze_emotion_faces', methods=['POST'])
+def analyze_emotion_faces():
+    """Endpoint for emotion analysis with face recognition"""
+    try:
+        data = request.get_json()
+        if not data or 'image' not in data:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        # Decode base64 image
+        image_data = base64.b64decode(data['image'])
+        nparr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'error': 'Invalid image data'}), 400
+        
+        try:
+            # Analyze emotion
+            result = DeepFace.analyze(
+                frame,
+                actions=['emotion'],
+                detector_backend='opencv',
+                enforce_detection=False,
+                silent=True
+            )
+            
+            emotion = result[0]['dominant_emotion']
+            
+            # Try face recognition against known faces
+            recognized_person = "Unknown"
+            try:
+                # Use DeepFace.find for face recognition
+                recognition_results = DeepFace.find(
+                    frame,
+                    db_path=GALLERY_DIR,
+                    model_name='ArcFace',
+                    detector_backend='opencv',
+                    distance_metric='cosine',
+                    enforce_detection=False,
+                    silent=True
+                )
+                
+                if recognition_results and len(recognition_results) > 0:
+                    df = recognition_results[0] if isinstance(recognition_results, list) else recognition_results
+                    if df is not None and hasattr(df, 'empty') and not df.empty:
+                        top_result = df.iloc[0]
+                        identity_path = str(top_result.get('identity', ''))
+                        distance = top_result.get('distance', None)
+                        
+                        if identity_path and distance is not None and distance <= 0.5:  # Threshold for recognition
+                            try:
+                                recognized_person = os.path.basename(os.path.dirname(identity_path))
+                            except Exception:
+                                recognized_person = os.path.splitext(os.path.basename(identity_path))[0]
+            except Exception as e:
+                print(f"Face recognition error: {e}")
+                recognized_person = "Unknown"
+            
+            # Create face data with recognition info
+            h, w = frame.shape[:2]
+            face_data = [{
+                'x': 0,
+                'y': 0,
+                'width': int(w),
+                'height': int(h),
+                'emotion': emotion,
+                'confidence': 0.8,
+                'person': recognized_person
+            }]
+            
+            # Save frame and log data
+            if SESSION_START_TS is not None:
+                try:
+                    now = time.time()
+                    timestamp_iso = time.strftime('%Y-%m-%dT%H-%M-%S', time.localtime(now))
+                    filename = f"{timestamp_iso}_{emotion}_{recognized_person}.jpg"
+                    file_path = os.path.join(UPLOADS_DIR, filename)
+                    
+                    # Draw bounding box and labels on frame for saving
+                    frame_with_box = frame.copy()
+                    cv2.rectangle(frame_with_box, (0, 0), (w, h), (0, 255, 0), 2)
+                    cv2.putText(frame_with_box, f"Emotion: {emotion}", (10, 30), 
+                              cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    cv2.putText(frame_with_box, f"Person: {recognized_person}", (10, 70), 
+                              cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                    
+                    cv2.imwrite(file_path, frame_with_box)
+                    relative_path = os.path.join('uploads', filename)
+                    
+                    # Log to CSV
+                    _append_csv_log(timestamp_iso, emotion, relative_path, recognized_person)
+                except Exception as save_err:
+                    print(f"Error saving frame: {save_err}")
+            
+            return jsonify({
+                'overall_emotion': emotion,
+                'faces': face_data,
+                'face_count': 1,
+                'recognized_person': recognized_person
+            })
+            
+        except Exception as e:
+            print(f"Error in emotion analysis: {e}")
+            # Return error response
+            return jsonify({
+                'overall_emotion': 'error',
+                'faces': [],
+                'face_count': 0,
+                'recognized_person': 'Unknown',
+                'error': str(e)
+            })
+        
+    except Exception as e:
+        print(f"Error in analyze_emotion_faces: {e}")
         return jsonify({'error': str(e)}), 500
 
 
