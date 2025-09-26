@@ -1,0 +1,252 @@
+{
+  "info": {
+    "name": "EmongDeepFaceWeb API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "b4b6f8f1-2c47-4f1c-9b2a-collection-emong"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "studentId", "value": "1" },
+    { "key": "parentId", "value": "1" },
+    { "key": "sessionId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"guru1\",\n  \"email\": \"guru1@example.com\",\n  \"password\": \"Testpass123\",\n  \"role\": \"guru\",\n  \"full_name\": \"Guru Satu\",\n  \"phone\": \"081234567890\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"guru1\",\n  \"password\": \"Testpass123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.access_token) { pm.collectionVariables.set('token', json.access_token); }",
+                  "  if (json.user && json.user.id) { pm.collectionVariables.set('parentId', json.user.id); }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/profile", "host": ["{{baseUrl}}"], "path": ["api","auth","profile"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Config & Health",
+      "item": [
+        { "name": "Config", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/config", "host": ["{{baseUrl}}"], "path": ["config"] } } },
+        { "name": "Camera Health", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/camera/health", "host": ["{{baseUrl}}"], "path": ["camera","health"] } } },
+        { "name": "Analytics (session)", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/analytics/data", "host": ["{{baseUrl}}"], "path": ["analytics","data"] } } }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Get Students",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/students", "host": ["{{baseUrl}}"], "path": ["api","students"] }
+          }
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/students", "host": ["{{baseUrl}}"], "path": ["api","students"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_code\": \"SIS001\",\n  \"full_name\": \"Andi Saputra\",\n  \"class_name\": \"7A\",\n  \"birth_date\": \"2012-03-05\",\n  \"subject\": \"Umum\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const s = pm.response.json().student;",
+                  "  if (s && s.id) { pm.collectionVariables.set('studentId', s.id); }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Student Face",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/students/{{studentId}}/faces/upload", "host": ["{{baseUrl}}"], "path": ["api","students","{{studentId}}","faces","upload"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/students/{{studentId}}", "host": ["{{baseUrl}}"], "path": ["api","students","{{studentId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"class_name\": \"7B\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Student",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/students/{{studentId}}", "host": ["{{baseUrl}}"], "path": ["api","students","{{studentId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Session (class mode)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/sessions", "host": ["{{baseUrl}}"], "path": ["api","sessions"] },
+            "body": { "mode": "raw", "raw": "{\n  \"session_name\": \"Sesi Kelas\",\n  \"student_id\": 0,\n  \"notes\": \"Monitoring kelas\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json(); if (j && j.id) { pm.collectionVariables.set('sessionId', j.id); }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Session by ID",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api","sessions","{{sessionId}}"] }
+          }
+        },
+        {
+          "name": "List Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/sessions/active", "host": ["{{baseUrl}}"], "path": ["api","sessions","active"] }
+          }
+        },
+        {
+          "name": "Stop Session",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/stop", "host": ["{{baseUrl}}"], "path": ["api","sessions","{{sessionId}}","stop"] }
+          }
+        },
+        {
+          "name": "Stop All Sessions (bulk)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/stop?all=true", "host": ["{{baseUrl}}"], "path": ["api","sessions","{{sessionId}}","stop"], "query": [ {"key": "all", "value": "true"} ] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parents",
+      "item": [
+        {
+          "name": "Link Parent to Student",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/parents/{{parentId}}/link-student", "host": ["{{baseUrl}}"], "path": ["api","parents","{{parentId}}","link-student"] },
+            "body": { "mode": "raw", "raw": "{\n  \"student_code\": \"SIS001\",\n  \"relationship\": \"ayah\",\n  \"is_primary\": true\n}" }
+          }
+        },
+        {
+          "name": "Parent Stats",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/dashboard/parent/stats", "host": ["{{baseUrl}}"], "path": ["api","dashboard","parent","stats"] }
+          }
+        },
+        {
+          "name": "Parent Children",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/parent/children", "host": ["{{baseUrl}}"], "path": ["api","parent","children"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "item": [
+        {
+          "name": "Analyze Emotion (base64)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/analyze_emotion", "host": ["{{baseUrl}}"], "path": ["analyze_emotion"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image\": \"<BASE64_JPEG_NO_PREFIX>\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

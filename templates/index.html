@@ -10,15 +10,26 @@
 <body>
     <div class="container">
         <h1>Real-Time Emotion Detection</h1>
-        <div class="video-container">
-            <!-- Using img to display the live video feed from the backend -->
-            <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Real-time video feed" width="640" height="480">
+        <div class="video-container" style="position:relative; display:inline-block;">
+            <!-- Prefer client camera; fallback to server stream -->
+            <video id="clientVideo" width="640" height="480" autoplay playsinline style="display:none; background:#000"></video>
+            <canvas id="overlay" width="640" height="480" style="position:absolute; left:0; top:0; display:none;"></canvas>
+            <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="Real-time video feed" width="640" height="480" style="display:none;">
         </div>
         <div class="instructions">
             <p>This system detects emotions in real-time using your webcam.</p>
             <p>Make sure your face is clearly visible for best results.</p>
             <div id="apiStatus" style="margin-top: 10px; padding: 8px; border-radius: 4px; background-color: #f0f0f0;">
                 <strong>API Status:</strong> <span id="apiStatusText">Loading...</span>
+            </div>
+            <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <label for="camSourceSel"><strong>Kamera:</strong></label>
+                <select id="camSourceSel">
+                    <option value="webcam">Webcam</option>
+                    <option value="rtsp">RTSP (CCTV)</option>
+                </select>
+                <input id="rtspUrlInput" type="text" placeholder="rtsp://user:pass@ip:554/..." style="min-width:320px; display:none;" />
+                <button id="applyCamBtn">Terapkan</button>
             </div>
         </div>
 
@@ -54,6 +65,325 @@
         </div>
     </div>
 
-    <script src="./index.js"></script>
+    <script>
+           // Global configuration
+   let config = {
+    apiBaseUrl: 'http://localhost:5000',
+    cameraAvailable: true
+};
+
+// Load configuration on page load
+async function loadConfig() {
+    try {
+        const response = await fetch('/config');
+        config = await response.json();
+        console.log('Configuration loaded:', config);
+        updateApiStatus();
+    } catch (e) {
+        console.error('Failed to load configuration:', e);
+        updateApiStatus('Error loading configuration');
+    }
+}
+
+// Update API status display
+function updateApiStatus(message = null) {
+    const statusElement = document.getElementById('apiStatusText');
+    const statusContainer = document.getElementById('apiStatus');
+    
+    if (message) {
+        statusElement.textContent = message;
+        statusContainer.style.backgroundColor = '#ffebee';
+        statusContainer.style.color = '#c62828';
+        return;
+    }
+    
+    // Use the status from config if available
+    if (config.status === 'ngrok' || config.isNgrok) {
+        statusElement.textContent = `Using Ngrok API: ${config.apiBaseUrl}`;
+        statusContainer.style.backgroundColor = '#e3f2fd';
+        statusContainer.style.color = '#1565c0';
+    } else if (config.apiBaseUrl === 'http://localhost:5000') {
+        statusElement.textContent = 'Using Local Processing';
+        statusContainer.style.backgroundColor = '#e8f5e8';
+        statusContainer.style.color = '#2e7d32';
+    } else {
+        statusElement.textContent = `Using API: ${config.apiBaseUrl}`;
+        statusContainer.style.backgroundColor = '#fff3e0';
+        statusContainer.style.color = '#ef6c00';
+    }
+}
+
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+const lineCtx = document.getElementById('timelineChart').getContext('2d');
+
+const emotionColors = {
+    angry: '#e74c3c',
+    disgust: '#16a085',
+    fear: '#8e44ad',
+    happy: '#f1c40f',
+    sad: '#3498db',
+    surprise: '#e67e22',
+    neutral: '#95a5a6'
+};
+
+let pieChart = new Chart(pieCtx, {
+    type: 'pie',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: [] }]},
+    options: { responsive: true, plugins: { legend: { position: 'bottom' }}}
+});
+
+let timelineChart = new Chart(lineCtx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+        responsive: true,
+        scales: { x: { title: { display: true, text: 'Time' }}, y: { beginAtZero: true, precision: 0 }},
+        plugins: { legend: { position: 'bottom' }}
+    }
+});
+
+// Function to send frame to ngrok API for emotion analysis
+async function analyzeFrameWithNgrok(frame) {
+    try {
+        if (config.apiBaseUrl === 'http://localhost:5000') {
+            return null; // Use local processing
+        }
+        
+        // Convert frame to base64
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = frame.videoWidth || frame.width;
+        canvas.height = frame.videoHeight || frame.height;
+        ctx.drawImage(frame, 0, 0);
+        const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        
+        // Send to ngrok API
+        const response = await fetch(`${config.apiBaseUrl}/analyze_emotion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: base64 })
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.error('Error sending frame to ngrok API:', e);
+    }
+    return null;
+}
+
+// Draw helper for boxes and labels
+function drawDetections(ctx, detections) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    if (!detections || !Array.isArray(detections)) return;
+    for (const det of detections) {
+        const { x, y, w, h, emotion, identity } = det;
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+        const parts = [];
+        if (identity) parts.push(String(identity));
+        if (emotion) parts.push(String(emotion));
+        const label = parts.join(' - ');
+        if (label) {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(x, Math.max(0, y - 20), ctx.measureText(label).width + 12, 20);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px sans-serif';
+            ctx.fillText(label, x + 6, Math.max(12, y - 6));
+        }
+    }
+}
+
+// Try to start client camera
+async function startClientCamera() {
+    const videoEl = document.getElementById('clientVideo');
+    const canvasEl = document.getElementById('overlay');
+    const ctx = canvasEl.getContext('2d');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        videoEl.srcObject = stream;
+        await videoEl.play();
+        videoEl.style.display = '';
+        canvasEl.style.display = '';
+        document.getElementById('videoFeed').style.display = 'none';
+
+        // Loop: send frame periodically when using ngrok API; otherwise, rely on local server processing
+        const endpoint = (config && config.apiBaseUrl) ? config.apiBaseUrl : '/';
+        const tmpCanvas = document.createElement('canvas');
+        const tmpCtx = tmpCanvas.getContext('2d');
+        const tick = async () => {
+            try {
+                tmpCanvas.width = videoEl.videoWidth || 640;
+                tmpCanvas.height = videoEl.videoHeight || 480;
+                tmpCtx.drawImage(videoEl, 0, 0, tmpCanvas.width, tmpCanvas.height);
+                let detections = [];
+                const base64 = tmpCanvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                const url = endpoint.endsWith('/analyze_emotion') ? endpoint : `${endpoint}/analyze_emotion`;
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64 })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    detections = data.boxes || [];
+                    if ((!detections || detections.length === 0) && data.emotion) {
+                        ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+                        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                        ctx.fillRect(8, 8, ctx.measureText(data.emotion).width + 14, 22);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '16px sans-serif';
+                        ctx.fillText(data.emotion, 14, 24);
+                    } else {
+                        drawDetections(ctx, detections);
+                    }
+                } else {
+                    ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+                }
+            } catch (e) {
+                // swallow
+            } finally {
+                requestAnimationFrame(tick);
+            }
+        };
+        requestAnimationFrame(tick);
+
+        return true;
+    } catch (e) {
+        console.warn('getUserMedia gagal, fallback ke stream server', e);
+        return false;
+    }
+}
+
+async function refreshAnalytics() {
+    try {
+        const filter = document.getElementById('identityFilter').value;
+        const q = filter ? ('?identity=' + encodeURIComponent(filter)) : '';
+        const res = await fetch('/analytics/data' + q);
+        const data = await res.json();
+
+        document.getElementById('sessionStart').textContent = data.sessionStart ? `Session start: ${data.sessionStart}` : '';
+
+        // Populate identity filter options on first load or when identities change
+        const sel = document.getElementById('identityFilter');
+        if (Array.isArray(data.identities)) {
+            const current = sel.value;
+            const options = [''].concat(data.identities);
+            // Rebuild options
+            sel.innerHTML = '';
+            for (const id of options) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = id || 'All';
+                sel.appendChild(opt);
+            }
+            // Restore previous selection if available
+            if (options.includes(current)) sel.value = current;
+        }
+
+        // Pie data
+        const labels = Object.keys(data.counts).sort();
+        const values = labels.map(l => data.counts[l]);
+        const bg = labels.map(l => emotionColors[l] || '#7f8c8d');
+        pieChart.data.labels = labels;
+        pieChart.data.datasets[0].data = values;
+        pieChart.data.datasets[0].backgroundColor = bg;
+        pieChart.update();
+
+        // Timeline: count per minute per emotion
+        const buckets = {}; // { 'HH:MM': {emotion: count} }
+        const ordered = (data.timeline || []).slice().sort((a,b) => a.t.localeCompare(b.t));
+        const times = [];
+        for (const row of ordered) {
+            const t = row.t.slice(11, 16); // HH-MM
+            const tLabel = t.replace('-', ':');
+            if (!buckets[tLabel]) buckets[tLabel] = {};
+            buckets[tLabel][row.emotion] = (buckets[tLabel][row.emotion] || 0) + 1;
+            if (!times.includes(tLabel)) times.push(tLabel);
+        }
+
+        const emotions = Array.from(new Set(ordered.map(r => r.emotion))).sort();
+        const datasets = emotions.map(em => ({
+            label: em,
+            data: times.map(tm => (buckets[tm]?.[em] || 0)),
+            borderColor: emotionColors[em] || '#7f8c8d',
+            backgroundColor: 'transparent'
+        }));
+
+        timelineChart.data.labels = times;
+        timelineChart.data.datasets = datasets;
+        timelineChart.update();
+
+        // Summary table per identity-emotion
+        const tbody = document.querySelector('#summaryTable tbody');
+        tbody.innerHTML = '';
+        const pic = data.perIdentityCounts || {};
+        const identities = Object.keys(pic).sort();
+        for (const id of identities) {
+            const emoCounts = pic[id];
+            const emos = Object.keys(emoCounts).sort();
+            for (const em of emos) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="padding:6px; border-bottom:1px solid #f0f0f0;">${id}</td>
+                                <td style=\"padding:6px; border-bottom:1px solid #f0f0f0;\">${em}</td>
+                                <td style=\"padding:6px; border-bottom:1px solid #f0f0f0;\">${emoCounts[em]}</td>`;
+                tbody.appendChild(tr);
+            }
+        }
+    } catch (e) {
+        console.error('Analytics refresh error', e);
+    }
+}
+
+// Initialize on page load
+loadConfig().then(async () => {
+    const ok = await startClientCamera();
+    if (!ok) {
+        // Fallback to server-side stream
+        document.getElementById('videoFeed').style.display = '';
+    }
+    refreshAnalytics();
+    setInterval(refreshAnalytics, 5000);
+    // Set camera selector initial
+    if (config && config.cameraSource) {
+        const sel = document.getElementById('camSourceSel');
+        sel.value = config.cameraSource;
+        document.getElementById('rtspUrlInput').style.display = sel.value === 'rtsp' ? '' : 'none';
+        if (config.rtspUrl) document.getElementById('rtspUrlInput').value = '';
+    }
+});
+
+document.getElementById('identityFilter').addEventListener('change', refreshAnalytics);
+
+// Camera source UI handlers
+document.getElementById('camSourceSel').addEventListener('change', (e) => {
+    const show = e.target.value === 'rtsp';
+    document.getElementById('rtspUrlInput').style.display = show ? '' : 'none';
+});
+
+document.getElementById('applyCamBtn').addEventListener('click', async () => {
+    try {
+        const source = document.getElementById('camSourceSel').value;
+        const rtspUrl = document.getElementById('rtspUrlInput').value.trim();
+        const res = await fetch('/camera/source', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(source === 'rtsp' ? { source, rtspUrl } : { source })
+        });
+        const j = await res.json();
+        if (res.ok) {
+            updateApiStatus(`Kamera diset ke ${source.toUpperCase()}`);
+        } else {
+            updateApiStatus(`Gagal set kamera: ${j.error || ''}`);
+        }
+    } catch (e) {
+        updateApiStatus(`Gagal set kamera: ${e.message}`);
+    }
+});
+    </script>
 </body>
 </html>

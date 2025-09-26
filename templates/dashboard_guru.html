@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Guru - Emotion Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .sidebar {
+            background: #1e293b;
+            min-height: 100vh;
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            transform: translateX(-100%);
+        }
+
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: #0f172a;
+            position: relative;
+        }
+
+        .sidebar-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: #22c55e;
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .sidebar-toggle:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+        }
+
+        .sidebar-header h4 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(10deg, #fb923c,#22c55e );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        .sidebar .nav {
+            padding: 1rem 0;
+        }
+
+        .sidebar .nav-link {
+            color: #cbd5e1;
+            padding: 16px 24px;
+            border-radius: 0;
+            margin: 0;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .sidebar .nav-link:hover {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border-left-color: #22c55e;
+            padding-left: 32px;
+        }
+
+        .sidebar .nav-link.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border-left-color: #22c55e;
+            font-weight: 600;
+        }
+
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 12px;
+        }
+
+        .main-content {
+            margin-left: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+            width: 100%;
+        }
+
+        .main-content.sidebar-open {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .welcome-text {
+            color: #64748b;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .user-info {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 16px;
+            padding: 16px 20px;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+            background: white;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background: #fafbfc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 20px 20px 0 0 !important;
+        }
+
+        .card-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 1.1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .stat-card:nth-child(1)::before { background: #22c55e; }
+        .stat-card:nth-child(2)::before { background: #fb923c; }
+        .stat-card:nth-child(3)::before { background: #3b82f6; }
+        .stat-card:nth-child(4)::before { background: #8b5cf6; }
+
+        .stat-card .card-body {
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card:nth-child(1) i { color: #22c55e; }
+        .stat-card:nth-child(2) i { color: #fb923c; }
+        .stat-card:nth-child(3) i { color: #3b82f6; }
+        .stat-card:nth-child(4) i { color: #8b5cf6; }
+
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #0f172a;
+        }
+
+        .stat-card p {
+            color: #64748b;
+            font-weight: 600;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            border: 3px solid #e2e8f0;
+        }
+
+        .video-container img,
+        .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Ensure overlay canvas scales with video while preserving pointer events */
+        .video-container canvas {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            pointer-events: none;
+        }
+
+        .session-controls {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .session-controls h6 {
+            color: #0f172a;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 12px 24px;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-danger {
+            background: #fb923c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ea580c;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(251, 146, 60, 0.3);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid #22c55e;
+            color: #22c55e;
+        }
+
+        .btn-outline-primary:hover {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid #6b7280;
+            color: #6b7280;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #6b7280;
+            border-color: #6b7280;
+            color: white;
+        }
+
+        .btn-outline-danger {
+            border: 2px solid #fb923c;
+            color: #fb923c;
+        }
+
+        .btn-outline-danger:hover {
+            background: #fb923c;
+            border-color: #fb923c;
+            color: white;
+        }
+
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+            background: white;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .student-list {
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .student-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .student-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .student-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .student-item {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .student-item:hover {
+            background: #f8fafc;
+            border-color: #22c55e;
+            transform: translateX(8px);
+        }
+
+        .student-item.active {
+            background: rgba(34, 197, 94, 0.05);
+            border-color: #22c55e;
+        }
+
+        .student-item h6 {
+            color: #0f172a;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert {
+            border-radius: 16px;
+            border: none;
+            padding: 16px 20px;
+            font-weight: 500;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: #fafbfc;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: #fafbfc;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .dropdown-menu {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .floating-elements {
+            position: fixed;
+            top: 0;
+            left: 280px;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .float-shape {
+            position: absolute;
+            opacity: 0.03;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .float-shape:nth-child(1) {
+            top: 10%;
+            right: 10%;
+            width: 120px;
+            height: 120px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation-delay: 0s;
+        }
+
+        .float-shape:nth-child(2) {
+            bottom: 20%;
+            right: 20%;
+            width: 80px;
+            height: 80px;
+            background: #fb923c;
+            border-radius: 30%;
+            animation-delay: 3s;
+        }
+
+        .float-shape:nth-child(3) {
+            top: 50%;
+            right: 5%;
+            width: 100px;
+            height: 100px;
+            background: #3b82f6;
+            border-radius: 20%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(34, 197, 94, 0.1);
+            color: #166534;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-inactive {
+            background: rgba(107, 114, 128, 0.1);
+            color: #374151;
+            border: 1px solid rgba(107, 114, 128, 0.2);
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80%;
+                max-width: 320px;
+                box-shadow: 8px 0 24px rgba(0,0,0,0.25);
+            }
+            .main-content {
+                padding: 1rem;
+            }
+            .main-content.sidebar-open {
+                margin-left: 0;
+                width: 100%;
+            }
+            .floating-elements { left: 0; }
+            .header-card { padding: 1.25rem; }
+            .page-title { font-size: 1.35rem; }
+            .stat-card h3 { font-size: 1.75rem; }
+            .video-container { border-width: 2px; }
+            .d-flex.flex-wrap > * { max-width: 100%; }
+        }
+
+        /* Animation for cards entering view */
+        .card {
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Staggered animation for stat cards */
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="float-shape"></div>
+        <div class="float-shape"></div>
+        <div class="float-shape"></div>
+    </div>
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- Sidebar Toggle Button -->
+            <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <button class="sidebar-close" onclick="toggleSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h4><i class="fas fa-graduation-cap me-2"></i>EMONG</h4>
+                    <p>Dashboard Guru</p>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="#home" onclick="showSection('home')">
+                        <i class="fas fa-home"></i> Beranda
+                    </a>
+                    <a class="nav-link" href="#detection" onclick="showSection('detection')">
+                        <i class="fas fa-video"></i> Deteksi Emosi
+                    </a>
+                    <a class="nav-link" href="/emotion-detection" target="_blank">
+                        <i class="fas fa-external-link-alt"></i> Full Screen Detection
+                    </a>
+                    <a class="nav-link" href="#students" onclick="showSection('students')">
+                        <i class="fas fa-users"></i> Data Siswa
+                    </a>
+                    <a class="nav-link" href="#reports" onclick="showSection('reports')">
+                        <i class="fas fa-chart-bar"></i> Laporan & Analytics
+                    </a>
+                    <a class="nav-link" href="#profile" onclick="showSection('profile')">
+                        <i class="fas fa-user"></i> Profil Saya
+                    </a>
+                    <a class="nav-link" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Header -->
+                <div class="header-card d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="page-title" id="pageTitle">Beranda</h2>
+                        <p class="welcome-text">Kelola sistem deteksi emosi dengan mudah</p>
+                    </div>
+                    <div class="user-info">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Selamat datang, <strong id="userName">Guru</strong>
+                    </div>
+                </div>
+                
+                <!-- Home Section -->
+                <div id="homeSection" class="section">
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <i class="fas fa-users"></i>
+                                    <h3 id="totalStudents">0</h3>
+                                    <p>Total Siswa</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <i class="fas fa-video"></i>
+                                    <h3 id="activeSessions">0</h3>
+                                    <p>Sesi Aktif</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <i class="fas fa-chart-line"></i>
+                                    <h3 id="todayDetections">0</h3>
+                                    <p>Deteksi Hari Ini</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <i class="fas fa-smile"></i>
+                                    <h3 id="avgEmotion">-</h3>
+                                    <p>Rata-rata Emosi</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-pie me-2" style="color: #22c55e;"></i>Grafik Distribusi Emosi Hari Ini</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="emotionChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock me-2" style="color: #fb923c;"></i>Aktivitas Terbaru</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentSessions">
+                                        <div class="text-center py-4">
+                                            <i class="fas fa-clock text-muted" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mt-2">Belum ada sesi hari ini</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detection Section -->
+                <div id="detectionSection" class="section" style="display: none;">
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-video me-2" style="color: #22c55e;"></i>Real-time Emotion Detection</h5>
+                                    <div>
+                                        <button class="btn btn-success me-2" id="startSessionBtn" onclick="startSession()">
+                                            <i class="fas fa-play me-2"></i>Mulai Sesi
+                                        </button>
+                                        <button class="btn btn-danger" id="stopSessionBtn" onclick="stopSession()" disabled>
+                                            <i class="fas fa-stop me-2"></i>Hentikan Sesi
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label for="dgCamSource" class="form-label mb-0 fw-bold">
+                                                <i class="fas fa-camera me-1" style="color: #22c55e;"></i>Kamera:
+                                            </label>
+                                            <select id="dgCamSource" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="webcam">📹 Webcam</option>
+                                                <option value="rtsp">📡 RTSP (CCTV)</option>
+                                            </select>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label for="dgDetectorBackend" class="form-label mb-0 fw-bold">
+                                                <i class="fas fa-search me-1" style="color: #fb923c;"></i>Detector:
+                                            </label>
+                                            <select id="dgDetectorBackend" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="opencv">🔍 OpenCV</option>
+                                                <option value="retinaface">🎯 RetinaFace</option>
+                                                <option value="mtcnn">📐 MTCNN</option>
+                                            </select>
+                                        </div>
+                                        <input id="dgRtspUrl" type="text" class="form-control form-control-sm" placeholder="rtsp://user:pass@ip:554/..." style="min-width:320px; display:none;" />
+                                        <button class="btn btn-sm btn-primary" onclick="applyDGCAMERA()">
+                                            <i class="fas fa-check me-1"></i>Terapkan
+                                        </button>
+                                    </div>
+                                    <div class="video-container mb-3">
+                                        <video id="dgVideo" autoplay playsinline style="background:#000;"></video>
+                                        <canvas id="dgOverlay"></canvas>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <h6 class="fw-bold mb-2">
+                                                <i class="fas fa-eye me-2" style="color: #22c55e;"></i>Deteksi Saat Ini
+                                            </h6>
+                                            <div id="detectionsList" class="p-3 bg-light rounded-3 small">
+                                                Belum ada deteksi
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="fw-bold mb-2">
+                                                <i class="fas fa-chart-bar me-2" style="color: #fb923c;"></i>Distribusi Emosi
+                                            </h6>
+                                            <div id="emotionDist" class="p-3 bg-light rounded-3 small">
+                                                Belum ada data
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="session-controls">
+                                <h6><i class="fas fa-cog me-2" style="color: #fb923c;"></i>Pengaturan Sesi</h6>
+                                <div class="mb-3">
+                                    <label for="sessionName" class="form-label">
+                                        <i class="fas fa-tag me-1" style="color: #22c55e;"></i>Nama Sesi
+                                    </label>
+                                    <input type="text" class="form-control" id="sessionName" placeholder="Contoh: Deteksi Emosi Kelas 7A">
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="sessionNotes" class="form-label">
+                                        <i class="fas fa-sticky-note me-1" style="color: #fb923c;"></i>Catatan
+                                    </label>
+                                    <textarea class="form-control" id="sessionNotes" rows="3" placeholder="Catatan tambahan untuk sesi ini..."></textarea>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>
+                                        <strong>Tips:</strong> Pastikan pencahayaan cukup dan siswa menghadap kamera untuk hasil deteksi optimal.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Students Section -->
+                <div id="studentsSection" class="section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5><i class="fas fa-users me-2" style="color: #22c55e;"></i>Manajemen Data Siswa</h5>
+                            <button class="btn btn-primary" onclick="addStudent()">
+                                <i class="fas fa-user-plus me-2"></i>Tambah Siswa Baru
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="student-list" id="studentList">
+                                <div class="text-center py-5">
+                                    <i class="fas fa-users text-muted" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mt-3">Belum ada data siswa</p>
+                                    <p class="text-muted small">Klik "Tambah Siswa Baru" untuk mulai menambah data</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reports Section -->
+                <div id="reportsSection" class="section" style="display: none;">
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-chart-bar me-2" style="color: #22c55e;"></i>Laporan & Analytics</h5>
+                                    <button class="btn btn-primary btn-sm" onclick="loadReportCharts()">
+                                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-4">
+                                        <div class="col-lg-6">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="fas fa-chart-pie me-2" style="color: #22c55e;"></i>
+                                                Distribusi Emosi Hari Ini
+                                            </h6>
+                                            <div class="chart-container">
+                                                <canvas id="reportPie"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <h6 class="fw-bold mb-3">
+                                                <i class="fas fa-chart-line me-2" style="color: #fb923c;"></i>
+                                                Trend Emosi (7 Hari Terakhir)
+                                            </h6>
+                                            <div class="chart-container">
+                                                <canvas id="reportTrend"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profile Section -->
+                <div id="profileSection" class="section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-user me-2" style="color: #22c55e;"></i>Profil Saya</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="profileForm" class="row g-3" onsubmit="event.preventDefault(); saveProfile();">
+                                <div class="col-md-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-id-card me-2" style="color: #22c55e;"></i>
+                                        Nama Lengkap
+                                    </label>
+                                    <input type="text" class="form-control" id="pf_full_name" placeholder="Masukkan nama lengkap">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-envelope me-2" style="color: #fb923c;"></i>
+                                        Email
+                                    </label>
+                                    <input type="email" class="form-control" id="pf_email" placeholder="nama@email.com">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-phone me-2" style="color: #22c55e;"></i>
+                                        No. HP
+                                    </label>
+                                    <input type="text" class="form-control" id="pf_phone" placeholder="08xxxxxxxxxx">
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-save me-2"></i>Simpan Perubahan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSession = null;
+        const emWindow = [];
+        function renderDetections(list) {
+            const el = document.getElementById('detectionsList');
+            if (!list || list.length === 0) { 
+                el.innerHTML = '<i class="fas fa-search text-muted"></i> Tidak ada deteksi'; 
+                return; 
+            }
+            el.innerHTML = list.map(d => `
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-user-circle me-2" style="color: #22c55e;"></i>
+                    <span>${d.identity || 'Unknown'} - <strong style="color: #fb923c;">${d.emotion || '-'}</strong></span>
+                </div>
+            `).join('');
+        }
+        function renderEmotionDist() {
+            const counts = {};
+            emWindow.forEach(e => { counts[e] = (counts[e]||0)+1; });
+            const el = document.getElementById('emotionDist');
+            if (Object.keys(counts).length === 0) { 
+                el.innerHTML = '<i class="fas fa-chart-bar text-muted"></i> Belum ada data'; 
+                return; 
+            }
+            el.innerHTML = Object.entries(counts).map(([k,v]) => `
+                <span class="badge bg-light text-dark me-2 mb-1">${k}: ${v}</span>
+            `).join('');
+        }
+        function drawBoxes(ctx, dets) {
+            ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+            if (!Array.isArray(dets)) return;
+            for (const d of dets) {
+                const x=d.x,y=d.y,w=d.w,h=d.h;
+                const label=[d.identity,d.emotion].filter(Boolean).join(' - ');
+                ctx.strokeStyle = '#22c55e'; ctx.lineWidth=3; ctx.strokeRect(x,y,w,h);
+                if (label) { 
+                    ctx.fillStyle='rgba(34, 197, 94, 0.8)'; 
+                    const textWidth = ctx.measureText(label).width;
+                    ctx.fillRect(x, Math.max(0,y-25), textWidth+16, 25); 
+                    ctx.fillStyle='#fff'; 
+                    ctx.font='bold 14px sans-serif'; 
+                    ctx.fillText(label, x+8, Math.max(16,y-6)); 
+                }
+            }
+        }
+        let dgStream = null; let dgRaf = null; let currentSessionId = null;
+        async function startDGStream(sessionId) {
+            currentSessionId = sessionId || null;
+            const video = document.getElementById('dgVideo');
+            const canvas = document.getElementById('dgOverlay');
+            const ctx = canvas.getContext('2d');
+            if (!dgStream) {
+                dgStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+            }
+            video.srcObject = dgStream; await video.play();
+            // Match canvas size to actual video size for accurate overlays
+            const updateCanvasSize = () => {
+                const vw = video.videoWidth || 640;
+                const vh = video.videoHeight || 480;
+                canvas.width = vw;
+                canvas.height = vh;
+            };
+            if (video.readyState >= 2) { updateCanvasSize(); }
+            video.onloadedmetadata = updateCanvasSize;
+            const tmpC = document.createElement('canvas'); const tmpX = tmpC.getContext('2d');
+            let frameCount = 0;
+            const tick = async () => {
+                tmpC.width = video.videoWidth||640; tmpC.height = video.videoHeight||480;
+                tmpX.drawImage(video,0,0,tmpC.width,tmpC.height);
+                try {
+                    // proses tiap 3 frame untuk efisiensi
+                    if ((frameCount++ % 3) === 0) {
+                        const b64 = tmpC.toDataURL('image/jpeg',0.6).split(',')[1];
+                        const payload = { image: b64 };
+                        const user = JSON.parse(localStorage.getItem('user')||'{}');
+                        if (user && user.id) payload.teacher_id = user.id;
+                        if (currentSessionId) payload.session_id = currentSessionId;
+                        const res = await fetch('/analyze_emotion', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                        if (res.ok) {
+                            const data = await res.json();
+                            const boxes = data.boxes||[];
+                            drawBoxes(ctx, boxes);
+                            renderDetections(boxes);
+                            const emo = data.emotion; if (emo) { emWindow.push(emo); if (emWindow.length>50) emWindow.shift(); renderEmotionDist(); }
+                        }
+                    }
+                } catch(_){}
+                dgRaf = requestAnimationFrame(tick);
+            };
+            dgRaf = requestAnimationFrame(tick);
+        }
+        function stopDGStream() {
+            try { if (dgRaf) cancelAnimationFrame(dgRaf); dgRaf = null; } catch(_){ }
+            try { const v = document.getElementById('dgVideo'); v.pause(); } catch(_){ }
+            try { if (dgStream) { dgStream.getTracks().forEach(t=>t.stop()); } } catch(_){ }
+            dgStream = null; currentSessionId = null;
+            const cv = document.getElementById('dgOverlay');
+            const ctx = cv.getContext('2d');
+            ctx.clearRect(0,0,cv.width||640,cv.height||480);
+        }
+        let emotionChart = null;
+        
+        // Check authentication
+        if (!localStorage.getItem('access_token')) {
+            window.location.href = '/login';
+        }
+        
+        const user = JSON.parse(localStorage.getItem('user'));
+        document.getElementById('userName').textContent = user.full_name;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show sidebar by default on desktop
+            if (window.innerWidth > 768) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                sidebar.classList.add('show');
+                mainContent.classList.add('sidebar-open');
+                sidebarToggle.style.display = 'none';
+            }
+            
+            loadDashboardData();
+            loadStudents();
+            initializeEmotionChart();
+            // init camera selector dari /config
+            fetch('/config').then(r=>r.json()).then(cfg => {
+                try {
+                    const sel = document.getElementById('dgCamSource');
+                    sel.value = (cfg.cameraSource || 'webcam');
+                    document.getElementById('dgRtspUrl').style.display = sel.value==='rtsp' ? '' : 'none';
+                } catch(_){ }
+            }).catch(()=>{});
+            loadDailySummary();
+        });
+        
+        // Navigation
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(section + 'Section').style.display = 'block';
+            event.target.classList.add('active');
+            
+            // Update page title
+            const titles = {
+                'home': 'Beranda',
+                'detection': 'Deteksi Emosi Real-time',
+                'students': 'Manajemen Data Siswa',
+                'reports': 'Laporan & Analytics',
+                'profile': 'Profil Saya'
+            };
+            document.getElementById('pageTitle').textContent = titles[section];
+        }
+        
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard/guru/stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalStudents').textContent = data.total_students || 0;
+                    document.getElementById('activeSessions').textContent = data.active_sessions || 0;
+                    document.getElementById('todayDetections').textContent = data.today_detections || 0;
+                    document.getElementById('avgEmotion').textContent = data.avg_emotion || '-';
+                    
+                    // Update emotion chart
+                    if (data.emotion_data) {
+                        updateEmotionChart(data.emotion_data);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+        
+        // Load students
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/students', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const students = await response.json();
+                    displayStudentList(students);
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+        
+        function displayStudentList(students) {
+            const container = document.getElementById('studentList');
+            
+            if (!students || students.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-users text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3">Belum ada data siswa</p>
+                        <p class="text-muted small">Klik "Tambah Siswa Baru" untuk mulai menambah data</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            students.forEach(student => {
+                const div = document.createElement('div');
+                div.className = 'student-item';
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas fa-user-graduate me-2" style="color: #22c55e;"></i>
+                                ${student.full_name}
+                            </h6>
+                            <div class="d-flex align-items-center gap-3 mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-id-badge me-1"></i>
+                                    ${student.student_code}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-school me-1"></i>
+                                    ${student.class_name || 'Belum ada kelas'}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <label class="btn btn-sm btn-outline-secondary mb-0" title="Upload Foto Wajah">
+                                <i class="fas fa-camera"></i>
+                                <input type="file" accept="image/*" style="display:none" onchange="uploadFace(${student.id}, event)">
+                            </label>
+                            <button class="btn btn-sm btn-outline-info" onclick="manageStudentFaces(${student.id}, '${student.full_name}')" title="Kelola Foto Wajah">
+                                <i class="fas fa-images"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewStudent(${student.id})" title="Lihat Detail">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent(${student.id})" title="Hapus Siswa">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Session management
+        async function startSession() {
+            const sessionName = document.getElementById('sessionName').value || 'Sesi Kelas';
+            const notes = document.getElementById('sessionNotes').value;
+            
+            const startBtn = document.getElementById('startSessionBtn');
+            const originalText = startBtn.innerHTML;
+            startBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memulai...';
+            startBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify({
+                        session_name: sessionName,
+                        student_id: 0,
+                        notes: notes
+                    })
+                });
+                
+                if (response.ok) {
+                    const session = await response.json();
+                    currentSession = session;
+                    
+                    document.getElementById('stopSessionBtn').disabled = false;
+                    
+                    await startDGStream(currentSession.id);
+                    
+                    // Success notification
+                    showNotification('Sesi berhasil dimulai!', 'success');
+                } else {
+                    const error = await response.json();
+                    showNotification('Error: ' + error.error, 'danger');
+                    startBtn.innerHTML = originalText;
+                    startBtn.disabled = false;
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+                startBtn.innerHTML = originalText;
+                startBtn.disabled = false;
+            }
+        }
+        
+        async function stopSession() {
+            if (!currentSession) return;
+            
+            const stopBtn = document.getElementById('stopSessionBtn');
+            const originalText = stopBtn.innerHTML;
+            stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menghentikan...';
+            stopBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/sessions/${currentSession.id}/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    currentSession = null;
+                    document.getElementById('startSessionBtn').disabled = false;
+                    document.getElementById('startSessionBtn').innerHTML = '<i class="fas fa-play me-2"></i>Mulai Sesi';
+                    
+                    stopDGStream();
+                    showNotification('Sesi berhasil dihentikan!', 'success');
+                } else {
+                    stopBtn.innerHTML = originalText;
+                    stopBtn.disabled = false;
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+                stopBtn.innerHTML = originalText;
+                stopBtn.disabled = false;
+            }
+        }
+        
+        // Notification system
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        // Initialize emotion chart
+        function initializeEmotionChart() {
+            const ctx = document.getElementById('emotionChart').getContext('2d');
+            emotionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Happy', 'Sad', 'Angry', 'Fear', 'Surprise', 'Disgust', 'Neutral'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            '#22c55e',
+                            '#3b82f6',
+                            '#ef4444',
+                            '#8b5cf6',
+                            '#fb923c',
+                            '#6b7280',
+                            '#94a3b8'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Reports charts
+            const rp = document.getElementById('reportPie');
+            if (rp) {
+                window.reportPie = new Chart(rp.getContext('2d'), {
+                    type: 'doughnut',
+                    data: { 
+                        labels: ['Happy','Sad','Angry','Fear','Surprise','Disgust','Neutral'], 
+                        datasets: [{ 
+                            data:[0,0,0,0,0,0,0], 
+                            backgroundColor: ['#22c55e','#3b82f6','#ef4444','#8b5cf6','#fb923c','#6b7280','#94a3b8'],
+                            borderWidth: 0,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: { 
+                        responsive:true, 
+                        maintainAspectRatio:false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: { size: 11, weight: '600' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            const rt = document.getElementById('reportTrend');
+            if (rt) {
+                window.reportTrend = new Chart(rt.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: [], datasets: [] },
+                    options: { 
+                        responsive:true, 
+                        maintainAspectRatio:false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: { size: 11, weight: '600' }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function updateEmotionChart(data) {
+            if (emotionChart) {
+                emotionChart.data.datasets[0].data = [
+                    data.happy || 0,
+                    data.sad || 0,
+                    data.angry || 0,
+                    data.fear || 0,
+                    data.surprise || 0,
+                    data.disgust || 0,
+                    data.neutral || 0
+                ];
+                emotionChart.update();
+            }
+            if (window.reportPie) {
+                window.reportPie.data.datasets[0].data = [
+                    data.happy || 0,
+                    data.sad || 0,
+                    data.angry || 0,
+                    data.fear || 0,
+                    data.surprise || 0,
+                    data.disgust || 0,
+                    data.neutral || 0
+                ];
+                window.reportPie.update();
+            }
+        }
+
+        async function loadDailySummary() {
+            try {
+                // Coba ambil dari endpoint baru yang menggunakan Redis + DB
+                const userId = getCurrentUserId();
+                const res = await fetch(`/api/analytics/aggregation/${userId}`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                });
+                
+                if (!res.ok) {
+                    // Fallback ke endpoint lama
+                    const fallbackRes = await fetch('/api/dashboard/guru/daily-summary', {
+                        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                    });
+                    if (!fallbackRes.ok) return;
+                    const j = await fallbackRes.json();
+                    const days = Object.keys(j.days || {}).sort();
+                    const emos = ['happy','sad','angry','fear','surprise','disgust','neutral'];
+                    const colors = {
+                        happy:'#22c55e', sad:'#3b82f6', angry:'#ef4444', fear:'#8b5cf6', 
+                        surprise:'#fb923c', disgust:'#6b7280', neutral:'#94a3b8'
+                    };
+                    const datasets = emos.map(em => ({ 
+                        label: em.charAt(0).toUpperCase() + em.slice(1), 
+                        data: days.map(d => (j.days[d]?.[em] || 0)), 
+                        borderColor: colors[em], 
+                        backgroundColor: 'transparent', 
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }));
+                    
+                    if (window.reportTrend) {
+                        window.reportTrend.data.labels = days;
+                        window.reportTrend.data.datasets = datasets;
+                        window.reportTrend.update();
+                    }
+                    return;
+                }
+                
+                const j = await res.json();
+                const days = Object.keys(j).sort();
+                const emos = ['happy','sad','angry','fear','surprise','disgust','neutral'];
+                const colors = {
+                    happy:'#22c55e', sad:'#3b82f6', angry:'#ef4444', fear:'#8b5cf6', 
+                    surprise:'#fb923c', disgust:'#6b7280', neutral:'#94a3b8'
+                };
+                const datasets = emos.map(em => ({ 
+                    label: em.charAt(0).toUpperCase() + em.slice(1), 
+                    data: days.map(d => (j[d]?.[em] || 0)), 
+                    borderColor: colors[em], 
+                    backgroundColor: 'transparent', 
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }));
+                
+                if (window.reportTrend) {
+                    window.reportTrend.data.labels = days;
+                    window.reportTrend.data.datasets = datasets;
+                    window.reportTrend.update();
+                }
+            } catch (e) {
+                console.error('Error loading daily summary:', e);
+            }
+        }
+
+        async function loadReportCharts() {
+            const btn = document.querySelector('[onclick="loadReportCharts()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+            btn.disabled = true;
+            
+            try {
+                const stats = await fetch('/api/dashboard/guru/stats', { 
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                });
+                if (stats.ok) {
+                    const j = await stats.json();
+                    updateEmotionChart(j.emotion_data || {});
+                }
+                await loadDailySummary();
+                showNotification('Data berhasil diperbarui!', 'success');
+            } catch (e) {
+                showNotification('Gagal memuat data', 'danger');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Profile save
+        async function saveProfile() {
+            const btn = document.querySelector('[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            btn.disabled = true;
+            
+            try {
+                const full_name = document.getElementById('pf_full_name').value;
+                const email = document.getElementById('pf_email').value;
+                const phone = document.getElementById('pf_phone').value;
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token'), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name, email, phone })
+                });
+                const j = await res.json();
+                if (res.ok) {
+                    showNotification('Profil berhasil disimpan!', 'success');
+                    localStorage.setItem('user', JSON.stringify(j.user));
+                    document.getElementById('userName').textContent = j.user.full_name;
+                } else {
+                    showNotification('Gagal menyimpan: ' + (j.error || ''), 'danger');
+                }
+            } catch (e) { 
+                showNotification('Error: ' + e.message, 'danger'); 
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Prefill profile
+        (function prefillProfile(){
+            try {
+                const u = JSON.parse(localStorage.getItem('user') || '{}');
+                if (u) {
+                    if (document.getElementById('pf_full_name')) document.getElementById('pf_full_name').value = u.full_name || '';
+                    if (document.getElementById('pf_email')) document.getElementById('pf_email').value = u.email || '';
+                    if (document.getElementById('pf_phone')) document.getElementById('pf_phone').value = u.phone || '';
+                }
+            } catch(_){}
+        })();
+        
+        // Student management
+        function addStudent() {
+            showAddStudentModal();
+        }
+        
+        function showAddStudentModal() {
+            const modal = `
+                <div class="modal fade" id="addStudentModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-user-plus me-2" style="color: #22c55e;"></i>
+                                    Tambah Siswa Baru
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="addStudentForm">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="student_code" class="form-label">
+                                                <i class="fas fa-id-badge me-1" style="color: #22c55e;"></i>
+                                                Kode Siswa
+                                            </label>
+                                            <input type="text" class="form-control" id="student_code" name="student_code" required placeholder="Contoh: 2024001">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="full_name" class="form-label">
+                                                <i class="fas fa-user me-1" style="color: #fb923c;"></i>
+                                                Nama Lengkap
+                                            </label>
+                                            <input type="text" class="form-control" id="full_name" name="full_name" required placeholder="Nama lengkap siswa">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="class_name" class="form-label">
+                                                <i class="fas fa-school me-1" style="color: #22c55e;"></i>
+                                                Kelas
+                                            </label>
+                                            <input type="text" class="form-control" id="class_name" name/>
+                                                                                    <div class="col-md-6">
+                                            <label for="class_name" class="form-label">
+                                                <i class="fas fa-school me-1" style="color: #22c55e;"></i>
+                                                Kelas
+                                            </label>
+                                            <input type="text" class="form-control" id="class_name" name="class_name" placeholder="Contoh: 7A">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="email" class="form-label">
+                                                <i class="fas fa-envelope me-1" style="color: #fb923c;"></i>
+                                                Email
+                                            </label>
+                                            <input type="email" class="form-control" id="email" name="email" placeholder="siswa@email.com">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="phone" class="form-label">
+                                                <i class="fas fa-phone me-1" style="color: #22c55e;"></i>
+                                                No. HP
+                                            </label>
+                                            <input type="text" class="form-control" id="phone" name="phone" placeholder="08xxxxxxxxxx">
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="notes" class="form-label">
+                                                <i class="fas fa-sticky-note me-1" style="color: #fb923c;"></i>
+                                                Catatan
+                                            </label>
+                                            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Catatan tambahan tentang siswa..."></textarea>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>Batal
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="saveStudent()">
+                                    <i class="fas fa-save me-2"></i>Simpan Siswa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body if not exists
+            if (!document.getElementById('addStudentModal')) {
+                document.body.insertAdjacentHTML('beforeend', modal);
+            }
+            
+            // Show modal
+            const modalElement = new bootstrap.Modal(document.getElementById('addStudentModal'));
+            modalElement.show();
+        }
+        
+        async function saveStudent() {
+            const form = document.getElementById('addStudentForm');
+            const formData = new FormData(form);
+            const studentData = Object.fromEntries(formData.entries());
+            
+            const saveBtn = document.querySelector('#addStudentModal .btn-primary');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            saveBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify(studentData)
+                });
+                
+                if (response.ok) {
+                    const newStudent = await response.json();
+                    showNotification('Siswa berhasil ditambahkan!', 'success');
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addStudentModal'));
+                    modal.hide();
+                    
+                    // Reload student list
+                    loadStudents();
+                } else {
+                    const error = await response.json();
+                    showNotification('Error: ' + error.error, 'danger');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+        
+        async function viewStudent(studentId) {
+            try {
+                const response = await fetch(`/api/students/${studentId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const student = await response.json();
+                    showStudentDetailModal(student);
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            }
+        }
+        
+        function showStudentDetailModal(student) {
+            const modal = `
+                <div class="modal fade" id="studentDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-user-graduate me-2" style="color: #22c55e;"></i>
+                                    Detail Siswa
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-id-badge me-2" style="color: #22c55e;"></i>Kode Siswa:</strong>
+                                        <p>${student.student_code}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-user me-2" style="color: #fb923c;"></i>Nama Lengkap:</strong>
+                                        <p>${student.full_name}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-school me-2" style="color: #22c55e;"></i>Kelas:</strong>
+                                        <p>${student.class_name || '-'}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-envelope me-2" style="color: #fb923c;"></i>Email:</strong>
+                                        <p>${student.email || '-'}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong><i class="fas fa-phone me-2" style="color: #22c55e;"></i>No. HP:</strong>
+                                        <p>${student.phone || '-'}</p>
+                                    </div>
+                                    <div class="col-12">
+                                        <strong><i class="fas fa-sticky-note me-2" style="color: #fb923c;"></i>Catatan:</strong>
+                                        <p>${student.notes || '-'}</p>
+                                    </div>
+                                    <div class="col-12">
+                                        <strong><i class="fas fa-calendar me-2" style="color: #22c55e;"></i>Tanggal Bergabung:</strong>
+                                        <p>${new Date(student.created_at).toLocaleDateString('id-ID')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                                    <i class="fas fa-check me-2"></i>Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body if not exists
+            if (!document.getElementById('studentDetailModal')) {
+                document.body.insertAdjacentHTML('beforeend', modal);
+            } else {
+                document.getElementById('studentDetailModal').remove();
+                document.body.insertAdjacentHTML('beforeend', modal);
+            }
+            
+            // Show modal
+            const modalElement = new bootstrap.Modal(document.getElementById('studentDetailModal'));
+            modalElement.show();
+        }
+        
+        async function deleteStudent(studentId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus siswa ini? Data yang terkait juga akan dihapus.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/students/${studentId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    showNotification('Siswa berhasil dihapus!', 'success');
+                    loadStudents();
+                } else {
+                    const error = await response.json();
+                    showNotification('Error: ' + error.error, 'danger');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            }
+        }
+        
+        async function manageStudentFaces(studentId, studentName) {
+            try {
+                // Ambil daftar foto
+                const response = await fetch(`/api/students/${studentId}/faces`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                });
+                
+                if (!response.ok) {
+                    showNotification('Gagal memuat foto siswa', 'danger');
+                    return;
+                }
+                
+                const data = await response.json();
+                const faces = data.faces || [];
+                
+                // Buat modal
+                const modal = `
+                    <div class="modal fade" id="manageFacesModal" tabindex="-1">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-images me-2" style="color: #22c55e;"></i>
+                                        Kelola Foto Wajah - ${studentName}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6><i class="fas fa-upload me-2"></i>Upload Foto Baru</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="mb-3">
+                                                        <label for="faceFile" class="form-label">Pilih Foto</label>
+                                                        <input type="file" class="form-control" id="faceFile" accept="image/*">
+                                                    </div>
+                                                    <button class="btn btn-primary w-100" onclick="uploadNewFace(${studentId})">
+                                                        <i class="fas fa-upload me-2"></i>Upload
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="card">
+                                                <div class="card-header">
+                                                    <h6><i class="fas fa-images me-2"></i>Foto Tersimpan (${faces.length})</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="facesGrid" class="row g-3">
+                                                        ${faces.length === 0 ? 
+                                                            '<div class="col-12 text-center text-muted"><i class="fas fa-image fa-3x mb-3"></i><p>Belum ada foto tersimpan</p></div>' :
+                                                            faces.map(face => `
+                                                                <div class="col-md-4">
+                                                                    <div class="card">
+                                                                        <img src="${face.url}" class="card-img-top" style="height: 150px; object-fit: cover;" alt="Foto Wajah">
+                                                                        <div class="card-body p-2">
+                                                                            <small class="text-muted d-block">${face.filename}</small>
+                                                                            <small class="text-muted d-block">${(face.size / 1024).toFixed(1)} KB</small>
+                                                                            <div class="mt-2">
+                                                                                <button class="btn btn-sm btn-outline-danger" onclick="deleteFace(${studentId}, '${face.filename}')">
+                                                                                    <i class="fas fa-trash"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            `).join('')
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Hapus modal lama jika ada
+                const existingModal = document.getElementById('manageFacesModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                // Tambahkan modal baru
+                document.body.insertAdjacentHTML('beforeend', modal);
+                
+                // Tampilkan modal
+                const modalElement = new bootstrap.Modal(document.getElementById('manageFacesModal'));
+                modalElement.show();
+                
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            }
+        }
+        
+        async function uploadNewFace(studentId) {
+            const fileInput = document.getElementById('faceFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('Pilih file terlebih dahulu', 'warning');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`/api/students/${studentId}/faces/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Foto berhasil diupload!', 'success');
+                    // Refresh modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('manageFacesModal'));
+                    modal.hide();
+                    // Reload modal dengan data terbaru
+                    setTimeout(() => {
+                        const studentName = document.querySelector('#manageFacesModal .modal-title').textContent.split(' - ')[1];
+                        manageStudentFaces(studentId, studentName);
+                    }, 300);
+                } else {
+                    showNotification('Error: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            }
+        }
+        
+        async function deleteFace(studentId, filename) {
+            if (!confirm('Yakin ingin menghapus foto ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/students/${studentId}/faces/${filename}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Foto berhasil dihapus!', 'success');
+                    // Refresh modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('manageFacesModal'));
+                    modal.hide();
+                    // Reload modal dengan data terbaru
+                    setTimeout(() => {
+                        const studentName = document.querySelector('#manageFacesModal .modal-title').textContent.split(' - ')[1];
+                        manageStudentFaces(studentId, studentName);
+                    }, 300);
+                } else {
+                    showNotification('Error: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            }
+        }
+        
+        async function uploadFace(studentId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                showNotification('File harus berupa gambar!', 'danger');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('face_image', file);
+            
+            const uploadBtn = event.target;
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+            uploadBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/students/${studentId}/face`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showNotification('Foto wajah berhasil diupload!', 'success');
+                } else {
+                    const error = await response.json();
+                    showNotification('Error: ' + error.error, 'danger');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'danger');
+            } finally {
+                uploadBtn.innerHTML = originalText;
+                uploadBtn.disabled = false;
+                event.target.value = ''; // Reset file input
+            }
+        }
+        
+        // Camera source handling
+        function applyDGCAMERA() {
+            const source = document.getElementById('dgCamSource').value;
+            const rtspUrl = document.getElementById('dgRtspUrl').value;
+            const detectorBackend = document.getElementById('dgDetectorBackend').value;
+            
+            // Save camera config
+            fetch('/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    cameraSource: source,
+                    rtspUrl: rtspUrl
+                })
+            }).then(r => {
+                if (r.ok) {
+                    showNotification('Pengaturan kamera berhasil disimpan!', 'success');
+                    
+                    if (source === 'rtsp' && rtspUrl) {
+                        // Switch to RTSP stream
+                        switchToRTSP(rtspUrl);
+                    } else {
+                        // Switch back to webcam
+                        switchToWebcam();
+                    }
+                }
+            }).catch(e => {
+                showNotification('Error menyimpan pengaturan kamera: ' + e.message, 'danger');
+            });
+            
+            // Save detector backend config
+            fetch('/detector/backend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    backend: detectorBackend
+                })
+            }).then(r => {
+                if (r.ok) {
+                    showNotification('Detector backend berhasil diubah!', 'success');
+                }
+            }).catch(e => {
+                showNotification('Error mengubah detector backend: ' + e.message, 'danger');
+            });
+        }
+        
+        function switchToRTSP(rtspUrl) {
+            stopDGStream();
+            const video = document.getElementById('dgVideo');
+            video.src = rtspUrl;
+            video.play().catch(e => {
+                showNotification('Error memutar stream RTSP: ' + e.message, 'danger');
+                switchToWebcam();
+            });
+        }
+        
+        function switchToWebcam() {
+            const video = document.getElementById('dgVideo');
+            video.src = '';
+            if (currentSession) {
+                startDGStream(currentSession.id);
+            }
+        }
+        
+        // Update camera source UI
+        document.getElementById('dgCamSource').addEventListener('change', function() {
+            document.getElementById('dgRtspUrl').style.display = this.value === 'rtsp' ? 'inline-block' : 'none';
+        });
+        
+        // Logout function
+        function logout() {
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+        }
+        
+        // Sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            sidebar.classList.toggle('show');
+            mainContent.classList.toggle('sidebar-open');
+            
+            // Hide/show toggle button based on sidebar state
+            if (sidebar.classList.contains('show')) {
+                sidebarToggle.style.display = 'none';
+            } else {
+                sidebarToggle.style.display = 'flex';
+            }
+        }
+        
+        // Mobile menu button is now embedded in the header for small screens
+        
+        // Auto-refresh dashboard data every 30 seconds
+        setInterval(loadDashboardData, 30000);
+        
+        // Handle page refresh when token expires
+        setInterval(() => {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+            }
+        }, 60000); // Check every minute
+        
+    </script>
+</body>
+</html>

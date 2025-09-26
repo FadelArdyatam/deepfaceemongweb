@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Emotion Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #22c55e 0%, #fb923c 100%);
+            border-radius: 24px 24px 0 0;
+        }
+
+        .login-header {
+            background: white;
+            color: #1e293b;
+            padding: 3rem 2rem 1rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e 0%, #fb923c 100%);
+            border-radius: 2px;
+        }
+
+        .login-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #0f172a;
+        }
+
+        .login-header p {
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .emoji-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #22c55e, #fb923c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+        }
+
+        .login-form {
+            padding: 2rem 2rem 2.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            padding: 16px 20px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-control:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        .form-control:hover {
+            border-color: #d1d5db;
+            background: white;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            z-index: 3;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.4);
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+
+        .btn-login:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(251, 146, 60, 0.4);
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+        }
+
+        .alert {
+            border-radius: 16px;
+            border: none;
+            padding: 16px 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #15803d;
+            border-left: 4px solid #22c55e;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border-left: 4px solid #ef4444;
+        }
+
+        .register-link {
+            color: #fb923c;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .register-link:hover {
+            color: #ea580c;
+            text-decoration: underline;
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: #fafbfc;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: #fafbfc;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+        }
+
+        .form-select {
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            padding: 16px 20px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-select:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+            background: white;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shape:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            top: 60%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 1rem;
+                border-radius: 20px;
+            }
+            
+            .login-header {
+                padding: 2rem 1.5rem 1rem;
+            }
+            
+            .login-form {
+                padding: 1.5rem;
+            }
+            
+            .emoji-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div class="shape" style="width: 100px; height: 100px; background: #22c55e; border-radius: 50%;"></div>
+        <div class="shape" style="width: 80px; height: 80px; background: #fb923c; border-radius: 30%;"></div>
+        <div class="shape" style="width: 120px; height: 120px; background: #22c55e; border-radius: 20%;"></div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="login-container">
+                    <div class="login-header">
+                        <div class="emoji-icon">🎭</div>
+                        <h2 class="mb-0">EMONG</h2>
+                        <p class="mb-0">Sistem Deteksi Emosi Real-time</p>
+                    </div>
+                    <div class="login-form">
+                        <form id="loginForm">
+                            <div class="mb-4">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-2" style="color: #22c55e;"></i>
+                                    Username atau Email
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="username" name="username" required>
+                                    <i class="fas fa-user input-icon"></i>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-2" style="color: #fb923c;"></i>
+                                    Password
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    <i class="fas fa-lock input-icon"></i>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-login">
+                                    <div class="loading-spinner"></div>
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    Masuk
+                                </button>
+                            </div>
+                        </form>
+                        <div id="alertContainer" class="mt-4"></div>
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                Belum punya akun? 
+                                <a href="#" class="register-link" onclick="showRegister()">
+                                    <i class="fas fa-user-plus me-1"></i>
+                                    Daftar di sini
+                                </a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2" style="color: #22c55e;"></i>
+                        Daftar Akun Baru
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_username" class="form-label">
+                                    <i class="fas fa-user me-2" style="color: #22c55e;"></i>
+                                    Username
+                                </label>
+                                <input type="text" class="form-control" id="reg_username" name="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_email" class="form-label">
+                                    <i class="fas fa-envelope me-2" style="color: #fb923c;"></i>
+                                    Email
+                                </label>
+                                <input type="email" class="form-control" id="reg_email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_password" class="form-label">
+                                    <i class="fas fa-lock me-2" style="color: #22c55e;"></i>
+                                    Password
+                                </label>
+                                <input type="password" class="form-control" id="reg_password" name="password" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_full_name" class="form-label">
+                                    <i class="fas fa-id-card me-2" style="color: #fb923c;"></i>
+                                    Nama Lengkap
+                                </label>
+                                <input type="text" class="form-control" id="reg_full_name" name="full_name" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_role" class="form-label">
+                                    <i class="fas fa-user-tag me-2" style="color: #22c55e;"></i>
+                                    Role
+                                </label>
+                                <select class="form-select" id="reg_role" name="role" required>
+                                    <option value="">Pilih Role</option>
+                                    <option value="guru">👩‍🏫 Guru</option>
+                                    <option value="orang_tua">👨‍👩‍👧‍👦 Orang Tua</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="reg_phone" class="form-label">
+                                    <i class="fas fa-phone me-2" style="color: #fb923c;"></i>
+                                    No. Telepon (Opsional)
+                                </label>
+                                <input type="text" class="form-control" id="reg_phone" name="phone">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>
+                        Batal
+                    </button>
+                    <button type="button" class="btn btn-primary btn-register" onclick="register()">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Daftar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = this.querySelector('.btn-login');
+            const spinner = submitBtn.querySelector('.loading-spinner');
+            
+            // Show loading
+            spinner.style.display = 'inline-block';
+            submitBtn.disabled = true;
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Simpan token ke localStorage
+                    localStorage.setItem('access_token', result.access_token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showAlert('Login berhasil! Mengalihkan...', 'success');
+                    
+                    // Redirect berdasarkan role
+                    setTimeout(() => {
+                        const role = result.user.role;
+                        if (role === 'guru') {
+                            window.location.href = '/dashboard/guru';
+                        } else if (role === 'orang_tua') {
+                            window.location.href = '/dashboard/parent';
+                        } else if (role === 'admin') {
+                            window.location.href = '/dashboard/admin';
+                        }
+                    }, 1500);
+                } else {
+                    showAlert(result.error || 'Login gagal', 'danger');
+                }
+            } catch (error) {
+                showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+            } finally {
+                // Hide loading
+                spinner.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Register function
+        async function register() {
+            const form = document.getElementById('registerForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            const submitBtn = document.querySelector('.btn-register');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mendaftar...';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Pendaftaran berhasil! Silakan login.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                    form.reset();
+                } else {
+                    showAlert(result.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Terjadi kesalahan: ' + error.message, 'danger');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+        
+        function showRegister() {
+            new bootstrap.Modal(document.getElementById('registerModal')).show();
+        }
+        
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="${icon} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = alertContainer.querySelector('.alert');
+                if (alert) {
+                    bootstrap.Alert.getInstance(alert)?.close();
+                }
+            }, 5000);
+        }
+        
+        // Check if already logged in
+        if (localStorage.getItem('access_token')) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const role = user.role;
+            if (role === 'guru') {
+                window.location.href = '/dashboard/guru';
+            } else if (role === 'orang_tua') {
+                window.location.href = '/dashboard/parent';
+            } else if (role === 'admin') {
+                window.location.href = '/dashboard/admin';
+            }
+        }
+
+        // Add some interactive effects
+        document.querySelectorAll('.form-control').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'scale(1.02)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
