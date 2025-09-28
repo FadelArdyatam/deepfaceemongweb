@@ -226,15 +226,30 @@ def require_role(required_roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user_id = get_jwt_identity()
-            user = User.query.get(user_id)
-            
-            if not user:
-                return jsonify({'error': 'User tidak ditemukan'}), 404
-            
-            if user.role not in required_roles:
-                return jsonify({'error': 'Akses ditolak. Role tidak sesuai'}), 403
-            
-            return f(*args, **kwargs)
+            try:
+                user_id = get_jwt_identity()
+                
+                if not user_id:
+                    return jsonify({'error': 'User ID tidak ditemukan dalam token'}), 401
+                
+                user = User.query.get(user_id)
+                
+                if not user:
+                    return jsonify({'error': 'User tidak ditemukan'}), 404
+                
+                if not user.is_active:
+                    return jsonify({'error': 'Akun tidak aktif'}), 403
+                
+                if user.role not in required_roles:
+                    return jsonify({
+                        'error': 'Akses ditolak. Role tidak sesuai',
+                        'required_roles': required_roles,
+                        'user_role': user.role
+                    }), 403
+                
+                return f(*args, **kwargs)
+                
+            except Exception as e:
+                return jsonify({'error': f'Terjadi kesalahan dalam validasi role: {str(e)}'}), 500
         return decorated_function
     return decorator

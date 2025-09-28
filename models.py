@@ -15,6 +15,8 @@ class User(db.Model):
     role = db.Column(db.Enum('admin', 'guru', 'orang_tua'), nullable=False)
     phone = db.Column(db.String(20), default='')
     is_active = db.Column(db.Boolean, default=True)
+    is_approved = db.Column(db.Boolean, default=None, nullable=True)  # None = pending, True = approved, False = rejected
+    last_login = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -43,6 +45,8 @@ class User(db.Model):
             'role': self.role,
             'phone': self.phone,
             'is_active': self.is_active,
+            'is_approved': self.is_approved,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -59,6 +63,8 @@ class Student(db.Model):
     phone = db.Column(db.String(20))
     email = db.Column(db.String(120))
     subject = db.Column(db.String(100))
+    photo_path = db.Column(db.String(255))
+    notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -81,6 +87,8 @@ class Student(db.Model):
             'phone': self.phone,
             'email': self.email,
             'subject': self.subject,
+            'photo_path': self.photo_path,
+            'notes': self.notes,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
@@ -92,6 +100,7 @@ class StudentTeacher(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    subject = db.Column(db.String(100), default='Umum')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     __table_args__ = (db.UniqueConstraint('student_id', 'teacher_id', name='unique_student_teacher'),)
@@ -103,6 +112,7 @@ class StudentParent(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     relationship = db.Column(db.String(50), default='parent')  # parent, guardian, etc.
+    is_primary = db.Column(db.Boolean, default=False)  # Menandai apakah ini orang tua utama
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     __table_args__ = (db.UniqueConstraint('student_id', 'parent_id', name='unique_student_parent'),)

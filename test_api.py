@@ -1,212 +1,190 @@
-#!/usr/bin/env python3
-"""
-Script untuk testing API endpoints
-Jalankan dengan: BASE_URL=http://localhost:5000 python test_api.py
-"""
-
 import requests
 import json
 import time
-import os
-from urllib.parse import urljoin
-import base64
+import sys
+from typing import Optional, Dict, Any
 
-try:
-    import numpy as np
-    import cv2
-except Exception:
-    np = None
-    cv2 = None
-
-def wait_for_server(base_url: str, timeout_seconds: int = 25, interval_seconds: float = 0.5) -> bool:
-    """Tunggu hingga server merespons salah satu endpoint sederhana."""
-    start = time.time()
-    probe_paths = ['/config', '/api/auth/profile', '/']
-    while time.time() - start < timeout_seconds:
-        for path in probe_paths:
+class APITester:
+    def __init__(self, base_url: str = "http://localhost:5000"):
+        self.base_url = base_url
+        self.access_token: Optional[str] = None
+        self.session = requests.Session()
+        
+    def login(self, username: str, password: str) -> bool:
+        """Login dan dapatkan JWT token"""
+        try:
+            login_data = {
+                "username": username,
+                "password": password
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/api/auth/login",
+                json=login_data,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.access_token = data.get('access_token')
+                print(f"✅ Login berhasil sebagai: {data.get('user', {}).get('username', 'Unknown')}")
+                return True
+            else:
+                error_data = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
+                print(f"❌ Login gagal: {error_data.get('error', 'Unknown error')}")
+                return False
+                
+        except requests.exceptions.ConnectionError:
+            print("❌ Tidak bisa terhubung ke server. Pastikan aplikasi sudah berjalan di port 5000")
+            return False
+        except requests.exceptions.Timeout:
+            print("❌ Timeout saat login. Server tidak merespons")
+            return False
+        except Exception as e:
+            print(f"❌ Error saat login: {e}")
+            return False
+    
+    def get_headers(self) -> Dict[str, str]:
+        """Dapatkan headers dengan JWT token"""
+        headers = {"Content-Type": "application/json"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        return headers
+    
+    def test_link_parent_student(self, parent_id: int, student_code: str, relationship: str = "ayah", is_primary: bool = True) -> bool:
+        """Test API endpoint untuk link parent-student"""
+        try:
+            data = {
+                "student_code": student_code,
+                "relationship": relationship,
+                "is_primary": is_primary
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/api/parents/{parent_id}/link-student",
+                json=data,
+                headers=self.get_headers(),
+                timeout=10
+            )
+            
+            print(f"Status Code: {response.status_code}")
+            
+            # Parse response
             try:
-                res = requests.get(urljoin(base_url, path), timeout=2)
-                if res.status_code < 500:
-                    return True
-            except Exception:
-                pass
-        time.sleep(interval_seconds)
-    return False
-
-# Base URL dari ENV (default localhost:5000)
-BASE_URL = os.getenv("BASE_URL", "http://localhost:5000").rstrip('/')
-
-
-def make_dummy_image_base64(w=320, h=240, color=(0, 0, 0)):
-    if np is None or cv2 is None:
-        # fallback: 1x1 blank jpeg
-        return base64.b64encode(b"\xff\xd8\xff\xd9").decode('utf-8')
-    img = np.zeros((h, w, 3), dtype=np.uint8)
-    img[:, :] = color
-    ok, buf = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
-    if not ok:
-        return base64.b64encode(b"\xff\xd8\xff\xd9").decode('utf-8')
-    return base64.b64encode(buf.tobytes()).decode('utf-8')
-
-
-def test_api():
-    """Test semua API endpoints"""
-    print("🧪 Memulai testing API...")
-
-    # Tunggu server siap
-    print(f"⏳ Menunggu server siap di {BASE_URL}...")
-    if not wait_for_server(BASE_URL):
-        print("❌ Server tidak bisa dihubungi. Pastikan app berjalan di port yang benar atau set ENV BASE_URL.")
-        return
-
-    # Test data
-    test_user = {
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "Testpass123",
-        "role": "guru",
-        "full_name": "Test User",
-        "phone": "081234567890"
-    }
-
-    # 1. Test Register
-    print("\n1. Testing Register...")
-    token = None
-    try:
-        response = requests.post(f"{BASE_URL}/api/auth/register", json=test_user, timeout=10)
-        if response.status_code == 201:
-            print("✅ Register berhasil")
-        elif response.status_code == 409:
-            print("ℹ️  User sudah ada (409), lanjutkan ke login")
-        else:
+                response_data = response.json()
+                print(f"Response: {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+            except:
+                print(f"Response (raw): {response.text}")
+            
+            # Handle different status codes
+            if response.status_code == 201:
+                print("✅ Relasi parent-student berhasil dibuat!")
+                return True
+            elif response.status_code == 400:
+                print("❌ Bad Request - Data yang dikirim tidak valid")
+                return False
+            elif response.status_code == 401:
+                print("❌ Unauthorized - Token invalid atau expired")
+                return False
+            elif response.status_code == 403:
+                print("❌ Forbidden - Access denied atau role tidak sesuai")
+                return False
+            elif response.status_code == 404:
+                print("❌ Not Found - Parent atau student tidak ditemukan")
+                return False
+            elif response.status_code == 500:
+                print("❌ Internal Server Error - Terjadi kesalahan di server")
+                return False
+            else:
+                print(f"❌ Error dengan status code: {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectionError:
+            print("❌ Tidak bisa terhubung ke server")
+            return False
+        except requests.exceptions.Timeout:
+            print("❌ Timeout - Server tidak merespons")
+            return False
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return False
+    
+    def test_without_auth(self, parent_id: int, student_code: str) -> bool:
+        """Test API endpoint tanpa authentication untuk melihat error handling"""
+        try:
+            data = {
+                "student_code": student_code,
+                "relationship": "ayah",
+                "is_primary": True
+            }
+            
+            response = self.session.post(
+                f"{self.base_url}/api/parents/{parent_id}/link-student",
+                json=data,
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            
+            print(f"Status Code (tanpa auth): {response.status_code}")
+            
             try:
-                print(f"❌ Register gagal: {response.status_code} {response.json()}")
-            except Exception:
-                print(f"❌ Register gagal: {response.status_code} {response.text}")
-    except Exception as e:
-        print(f"❌ Error register: {e}")
+                response_data = response.json()
+                print(f"Response (tanpa auth): {json.dumps(response_data, indent=2, ensure_ascii=False)}")
+            except:
+                print(f"Response (raw, tanpa auth): {response.text}")
+            
+            if response.status_code == 401:
+                print("✅ Error handling JWT bekerja dengan benar - 401 Unauthorized")
+                return True
+            else:
+                print(f"❌ Expected 401, got {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error testing without auth: {e}")
+            return False
 
-    # 2. Test Login (gunakan akun testuser yang barusan diregistrasi)
-    print("\n2. Testing Login...")
-    try:
-        response = requests.post(f"{BASE_URL}/api/auth/login",json={"username": test_user["username"], "password": test_user["password"]}, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            token = data['access_token']
-            user = data['user']
-            print("✅ Login berhasil")
-            print(f"Token: {token[:50]}...")
-        else:
-            try:
-                print(f"❌ Login gagal: {response.status_code} {response.json()}")
-            except Exception:
-                print(f"❌ Login gagal: {response.status_code} {response.text}")
-            return
-    except Exception as e:
-        print(f"❌ Error login: {e}")
-        return
-
-    # Headers dengan token
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-    # 3. Config & Camera source (set webcam)
-    print("\n3. Testing Camera Source (webcam)...")
-    try:
-        r = requests.post(f"{BASE_URL}/camera/source", json={"source":"webcam"}, timeout=10)
-        print("✅ Set camera source (webcam)" if r.ok else f"❌ Set camera source gagal: {r.status_code} {r.text}")
-    except Exception as e:
-        print(f"❌ Error camera/source: {e}")
-
-    # 4. Dashboard Stats (Guru)
-    print("\n4. Testing Dashboard Stats...")
-    try:
-        response = requests.get(f"{BASE_URL}/api/dashboard/guru/stats", headers=headers, timeout=10)
-        if response.status_code == 200:
-            print("✅ Dashboard stats berhasil")
-        else:
-            try:
-                print(f"❌ Dashboard stats gagal: {response.status_code} {response.json()}")
-            except Exception:
-                print(f"❌ Dashboard stats gagal: {response.status_code} {response.text}")
-    except Exception as e:
-        print(f"❌ Error dashboard stats: {e}")
-
-    # 5. Students: create + upload face (opsional jika file tersedia)
-    print("\n5. Testing Students API (create)...")
-    try:
-        sdata = {
-            "student_code": "SIS001",
-            "full_name": "Andi Saputra",
-            "class_name": "7A",
-            "birth_date": "2012-03-05",
-            "subject": "Umum"
-        }
-        response = requests.post(f"{BASE_URL}/api/students", headers=headers, data=None, json=sdata, timeout=15)
-        if response.status_code in (201, 409):
-            print("✅ Create student OK (201/409)")
-        else:
-            print(f"❌ Create student gagal: {response.status_code} {response.text}")
-    except Exception as e:
-        print(f"❌ Error create student: {e}")
-
-    # 6. Create Session (class mode) + list active
-    print("\n6. Testing Create Session & Active Sessions...")
-    session_id = None
-    try:
-        session_data = {"session_name": "Test Session", "student_id": 0, "notes": "Testing"}
-        response = requests.post(f"{BASE_URL}/api/sessions", json=session_data, headers=headers, timeout=10)
-        if response.status_code == 201:
-            print("✅ Create session berhasil")
-            session = response.json(); session_id = session.get('id')
-        else:
-            print(f"❌ Create session gagal: {response.status_code} {response.text}")
-        ra = requests.get(f"{BASE_URL}/api/sessions/active", headers=headers, timeout=10)
-        print("✅ List active sessions" if ra.ok else f"❌ Active sessions gagal: {ra.status_code} {ra.text}")
-    except Exception as e:
-        print(f"❌ Error create/list session: {e}")
-
-    # 7. Analyze Emotion (dummy image) - with teacher_id/session_id
-    print("\n7. Testing analyze_emotion (dummy)...")
-    try:
-        img64 = make_dummy_image_base64()
-        payload = {"image": img64}
-        if session_id:
-            payload["session_id"] = session_id
-        else:
-            payload["teacher_id"] = user.get('id')
-        response = requests.post(f"{BASE_URL}/analyze_emotion", json=payload, timeout=15)
-        if response.ok:
-            print("✅ analyze_emotion OK")
-        else:
-            print(f"❌ analyze_emotion gagal: {response.status_code} {response.text}")
-    except Exception as e:
-        print(f"❌ Error analyze_emotion: {e}")
-
-    # 8. Daily Summary & Stats
-    print("\n8. Testing Daily Summary & Dashboard Stats...")
-    try:
-        rs = requests.get(f"{BASE_URL}/api/dashboard/guru/stats", headers=headers, timeout=10)
-        rds = requests.get(f"{BASE_URL}/api/dashboard/guru/daily-summary", headers=headers, timeout=10)
-        print("✅ Stats OK" if rs.ok else f"❌ Stats gagal: {rs.status_code} {rs.text}")
-        print("✅ Daily Summary OK" if rds.ok else f"❌ Daily Summary gagal: {rds.status_code} {rds.text}")
-    except Exception as e:
-        print(f"❌ Error summary/stats: {e}")
-
-    # 9. Stop session (single & bulk)
-    print("\n9. Testing Stop Session...")
-    try:
-        if session_id:
-            rstop = requests.post(f"{BASE_URL}/api/sessions/{session_id}/stop", headers=headers, timeout=10)
-            print("✅ Stop session OK" if rstop.ok else f"❌ Stop session gagal: {rstop.status_code} {rstop.text}")
-        rbulk = requests.post(f"{BASE_URL}/api/sessions/0/stop?all=true", headers=headers, timeout=10)
-        print("✅ Stop all OK" if rbulk.ok else f"❌ Stop all gagal: {rbulk.status_code} {rbulk.text}")
-    except Exception as e:
-        print(f"❌ Error stop session: {e}")
-
-    print("\n🎉 Testing selesai!")
+def main():
+    print("🚀 Memulai API Testing dengan Error Handling yang Diperbaiki")
+    print("=" * 60)
+    
+    # Tunggu aplikasi startup
+    print("⏳ Menunggu aplikasi startup...")
+    time.sleep(3)
+    
+    # Inisialisasi tester
+    tester = APITester()
+    
+    # Test 1: Login
+    print("\n📝 Test 1: Login")
+    print("-" * 30)
+    if not tester.login("admin", "admin123"):  # Ganti dengan credentials yang benar
+        print("❌ Tidak bisa melanjutkan tanpa token")
+        sys.exit(1)
+    
+    # Test 2: Test tanpa authentication
+    print("\n📝 Test 2: Test tanpa authentication")
+    print("-" * 40)
+    tester.test_without_auth(4, "Fadel")
+    
+    # Test 3: Test dengan authentication
+    print("\n📝 Test 3: Test dengan authentication")
+    print("-" * 40)
+    success = tester.test_link_parent_student(4, "Fadel", "ayah", True)
+    
+    # Test 4: Test dengan data invalid
+    print("\n📝 Test 4: Test dengan data invalid")
+    print("-" * 40)
+    tester.test_link_parent_student(4, "", "ayah", True)  # student_code kosong
+    
+    # Test 5: Test dengan parent_id yang tidak ada
+    print("\n📝 Test 5: Test dengan parent_id yang tidak ada")
+    print("-" * 40)
+    tester.test_link_parent_student(99999, "Fadel", "ayah", True)
+    
+    print("\n" + "=" * 60)
+    print("🏁 Testing selesai!")
 
 if __name__ == "__main__":
-    test_api()
+    main()

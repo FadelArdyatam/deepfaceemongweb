@@ -540,6 +540,9 @@
                     <a class="nav-link" href="#students" onclick="showSection('students')">
                         <i class="fas fa-graduation-cap"></i> Manajemen Siswa
                     </a>
+                    <a class="nav-link" href="#relations" onclick="showSection('relations')">
+                        <i class="fas fa-link"></i> Relasi Parent-Siswa
+                    </a>
                     <a class="nav-link" href="#sessions" onclick="showSection('sessions')">
                         <i class="fas fa-video"></i> Sesi Deteksi
                     </a>
@@ -644,21 +647,34 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5><i class="fas fa-users"></i> Manajemen User</h5>
-                            <button class="btn btn-primary" onclick="addUser()">
-                                <i class="fas fa-plus"></i> Tambah User
-                            </button>
+                            <div>
+                                <button class="btn btn-success me-2" onclick="bulkApproveUsers()">
+                                    <i class="fas fa-check"></i> Approve Selected
+                                </button>
+                                <button class="btn btn-warning me-2" onclick="bulkRejectUsers()">
+                                    <i class="fas fa-times"></i> Reject Selected
+                                </button>
+                                <button class="btn btn-info me-2" onclick="exportData('users')">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                                <button class="btn btn-primary" onclick="addUser()">
+                                    <i class="fas fa-plus"></i> Tambah User
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="data-table">
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
+                                            <th><input type="checkbox" id="selectAllUsers" onchange="toggleAllUsers()"></th>
                                             <th>ID</th>
                                             <th>Username</th>
                                             <th>Nama Lengkap</th>
                                             <th>Email</th>
                                             <th>Role</th>
                                             <th>Status</th>
+                                            <th>Approval</th>
                                             <th>Terakhir Login</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -677,9 +693,14 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5><i class="fas fa-graduation-cap"></i> Manajemen Siswa</h5>
-                            <button class="btn btn-primary" onclick="addStudent()">
-                                <i class="fas fa-plus"></i> Tambah Siswa
-                            </button>
+                            <div>
+                                <button class="btn btn-info me-2" onclick="exportData('students')">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
+                                <button class="btn btn-primary" onclick="addStudent()">
+                                    <i class="fas fa-plus"></i> Tambah Siswa
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="data-table">
@@ -691,6 +712,7 @@
                                             <th>Nama Lengkap</th>
                                             <th>Kelas</th>
                                             <th>Tanggal Lahir</th>
+                                            <th>Parents</th>
                                             <th>Status</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -704,12 +726,74 @@
                     </div>
                 </div>
                 
+                <!-- Relations Section -->
+                <div id="relationsSection" class="section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-link"></i> Relasi Parent-Siswa</h5>
+                                    <button class="btn btn-primary" onclick="showAddRelationModal()">
+                                        <i class="fas fa-plus"></i> Tambah Relasi
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div class="data-table">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID</th>
+                                                    <th>Siswa</th>
+                                                    <th>Parent</th>
+                                                    <th>Relasi</th>
+                                                    <th>Dibuat</th>
+                                                    <th>Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="relationsTable">
+                                                <!-- Relations data will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-search"></i> Cari Relasi</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Cari berdasarkan Siswa:</label>
+                                        <select class="form-select" id="studentFilter" onchange="filterByStudent()">
+                                            <option value="">Semua Siswa</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Cari berdasarkan Parent:</label>
+                                        <select class="form-select" id="parentFilter" onchange="filterByParent()">
+                                            <option value="">Semua Parent</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-secondary" onclick="clearFilters()">
+                                        <i class="fas fa-times"></i> Hapus Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Sessions Section -->
                 <div id="sessionsSection" class="section" style="display: none;">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5><i class="fas fa-video"></i> Sesi Deteksi Emosi</h5>
                             <div>
+                                <button class="btn btn-info me-2" onclick="exportData('sessions')">
+                                    <i class="fas fa-download"></i> Export
+                                </button>
                                 <button class="btn btn-warning me-2" onclick="flushRedisData()"><i class="fas fa-sync"></i> Flush Redis</button>
                                 <button class="btn btn-danger" onclick="stopAllSessions()"><i class="fas fa-stop-circle"></i> Hentikan Semua Sesi Aktif</button>
                             </div>
@@ -741,6 +825,15 @@
                 
                 <!-- Analytics Section -->
                 <div id="analyticsSection" class="section" style="display: none;">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-info" onclick="exportData('emotions')">
+                                    <i class="fas fa-download"></i> Export Emotion Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card">
@@ -767,30 +860,63 @@
                 
                 <!-- System Section -->
                 <div id="systemSection" class="section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="fas fa-cog"></i> System Information</h5>
+                                    <h5><i class="fas fa-server"></i> Statistik Sistem</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
+                                    <div id="systemStats">
+                                        <p class="text-muted">Memuat statistik sistem...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                                 <div class="col-md-6">
-                                    <h6>Database Status</h6>
-                                    <p class="text-success"><i class="fas fa-check-circle"></i> Connected</p>
-                                    
-                                    <h6>System Uptime</h6>
-                                    <p id="systemUptime">Loading...</p>
-                                    
-                                    <h6>Memory Usage</h6>
-                                    <p id="memoryUsage">Loading...</p>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-database"></i> Database</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="databaseStats">
+                                        <p class="text-muted">Memuat statistik database...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-tools"></i> Tools Sistem</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary" onclick="createBackup()">
+                                            <i class="fas fa-download"></i> Buat Backup
+                                        </button>
+                                        <button class="btn btn-warning" onclick="compressData()">
+                                            <i class="fas fa-compress"></i> Kompres Data Lama
+                                        </button>
+                                        <button class="btn btn-info" onclick="refreshSystemStats()">
+                                            <i class="fas fa-sync"></i> Refresh Statistik
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6>Recent Errors</h6>
-                                    <div id="recentErrors">
-                                        <p class="text-muted">No recent errors</p>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-file-alt"></i> Log Sistem</h5>
                                     </div>
-                                    
-                                    <h6>Backup Status</h6>
-                                    <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> Last backup: Never</p>
+                                <div class="card-body">
+                                    <div id="systemLogs" style="max-height: 300px; overflow-y: auto;">
+                                        <p class="text-muted">Memuat log sistem...</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -799,12 +925,108 @@
                 
                 <!-- Profile Section -->
                 <div id="profileSection" class="section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="fas fa-user"></i> Profil Saya</h5>
                         </div>
                         <div class="card-body">
-                            <p>Fitur profil akan segera tersedia...</p>
+                                    <form id="profileForm">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="profileUsername" class="form-label">Username</label>
+                                                    <input type="text" class="form-control" id="profileUsername" readonly>
+                        </div>
+                    </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="profileEmail" class="form-label">Email</label>
+                                                    <input type="email" class="form-control" id="profileEmail">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="profileFullName" class="form-label">Nama Lengkap</label>
+                                                    <input type="text" class="form-control" id="profileFullName">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="profilePhone" class="form-label">No. Telepon</label>
+                                                    <input type="text" class="form-control" id="profilePhone">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="profileRole" class="form-label">Role</label>
+                                            <input type="text" class="form-control" id="profileRole" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="profileIsActive" disabled>
+                                                <label class="form-check-label" for="profileIsActive">
+                                                    Akun Aktif
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-primary" onclick="updateProfile()">
+                                            <i class="fas fa-save"></i> Update Profil
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-key"></i> Ubah Password</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="passwordForm">
+                                        <div class="mb-3">
+                                            <label for="currentPassword" class="form-label">Password Lama</label>
+                                            <input type="password" class="form-control" id="currentPassword" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="newPassword" class="form-label">Password Baru</label>
+                                            <input type="password" class="form-control" id="newPassword" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="confirmPassword" class="form-label">Konfirmasi Password Baru</label>
+                                            <input type="password" class="form-control" id="confirmPassword" required>
+                                        </div>
+                                        <button type="button" class="btn btn-warning" onclick="changePassword()">
+                                            <i class="fas fa-key"></i> Ubah Password
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-info-circle"></i> Informasi Akun</h5>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td><strong>Dibuat:</strong></td>
+                                            <td id="profileCreatedAt">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Terakhir Update:</strong></td>
+                                            <td id="profileUpdatedAt">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Login Terakhir:</strong></td>
+                                            <td id="profileLastLogin">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -812,7 +1034,462 @@
         </div>
     </div>
 
+    <!-- Add Relation Modal -->
+    <div class="modal fade" id="addRelationModal" tabindex="-1" aria-labelledby="addRelationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addRelationModalLabel">Tambah Relasi Parent-Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addRelationForm">
+                        <div class="mb-3">
+                            <label for="parentSelect" class="form-label">Pilih Parent:</label>
+                            <select class="form-select" id="parentSelect" required>
+                                <option value="">Pilih Parent</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentSelect" class="form-label">Pilih Siswa:</label>
+                            <select class="form-select" id="studentSelect" required>
+                                <option value="">Pilih Siswa</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="relationshipSelect" class="form-label">Jenis Relasi:</label>
+                            <select class="form-select" id="relationshipSelect" required>
+                                <option value="ayah">Ayah</option>
+                                <option value="ibu">Ibu</option>
+                                <option value="wali">Wali</option>
+                                <option value="kakak">Kakak</option>
+                                <option value="adik">Adik</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="addRelation()">Tambah Relasi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">Tambah User Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userUsername" class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="userUsername" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userEmail" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="userEmail" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userFullName" class="form-label">Nama Lengkap *</label>
+                                    <input type="text" class="form-control" id="userFullName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userRole" class="form-label">Role *</label>
+                                    <select class="form-select" id="userRole" required>
+                                        <option value="">Pilih Role</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="guru">Guru</option>
+                                        <option value="orang_tua">Orang Tua</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userPassword" class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="userPassword" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="userPhone" class="form-label">No. Telepon</label>
+                                    <input type="text" class="form-control" id="userPhone">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="userIsActive" checked>
+                                <label class="form-check-label" for="userIsActive">
+                                    User Aktif
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="userIsApproved" checked>
+                                <label class="form-check-label" for="userIsApproved">
+                                    User Disetujui
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="createUser()">Tambah User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserUsername" class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="editUserUsername" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserEmail" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="editUserEmail" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserFullName" class="form-label">Nama Lengkap *</label>
+                                    <input type="text" class="form-control" id="editUserFullName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserRole" class="form-label">Role *</label>
+                                    <select class="form-select" id="editUserRole" required>
+                                        <option value="">Pilih Role</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="guru">Guru</option>
+                                        <option value="orang_tua">Orang Tua</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserPassword" class="form-label">Password Baru (kosongkan jika tidak diubah)</label>
+                                    <input type="password" class="form-control" id="editUserPassword">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editUserPhone" class="form-label">No. Telepon</label>
+                                    <input type="text" class="form-control" id="editUserPhone">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editUserIsActive">
+                                <label class="form-check-label" for="editUserIsActive">
+                                    User Aktif
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editUserIsApproved">
+                                <label class="form-check-label" for="editUserIsApproved">
+                                    User Disetujui
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateUser()">Update User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStudentModalLabel">Tambah Siswa Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addStudentForm">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentCode" class="form-label">Kode Siswa *</label>
+                                    <input type="text" class="form-control" id="studentCode" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentFullName" class="form-label">Nama Lengkap *</label>
+                                    <input type="text" class="form-control" id="studentFullName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentClassName" class="form-label">Kelas *</label>
+                                    <input type="text" class="form-control" id="studentClassName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentBirthDate" class="form-label">Tanggal Lahir</label>
+                                    <input type="date" class="form-control" id="studentBirthDate">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentPhone" class="form-label">No. Telepon</label>
+                                    <input type="text" class="form-control" id="studentPhone">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="studentEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="studentEmail">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="studentAddress" class="form-label">Alamat</label>
+                                    <textarea class="form-control" id="studentAddress" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="studentSubject" class="form-label">Mata Pelajaran</label>
+                                    <input type="text" class="form-control" id="studentSubject">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="studentNotes" class="form-label">Catatan</label>
+                            <textarea class="form-control" id="studentNotes" rows="2"></textarea>
+                        </div>
+                        
+                        <!-- Parent Selection -->
+                        <hr>
+                        <h6>Pilih Parents</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Parents yang tersedia:</label>
+                            <div id="availableParents" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <p class="text-muted">Memuat parents...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="studentIsActive" checked>
+                                <label class="form-check-label" for="studentIsActive">
+                                    Siswa Aktif
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="createStudent()">Tambah Siswa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div class="modal fade" id="editStudentModal" tabindex="-1" aria-labelledby="editStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editStudentModalLabel">Edit Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editStudentForm">
+                        <input type="hidden" id="editStudentId">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentCode" class="form-label">Kode Siswa *</label>
+                                    <input type="text" class="form-control" id="editStudentCode" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentFullName" class="form-label">Nama Lengkap *</label>
+                                    <input type="text" class="form-control" id="editStudentFullName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentClassName" class="form-label">Kelas *</label>
+                                    <input type="text" class="form-control" id="editStudentClassName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentBirthDate" class="form-label">Tanggal Lahir</label>
+                                    <input type="date" class="form-control" id="editStudentBirthDate">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentPhone" class="form-label">No. Telepon</label>
+                                    <input type="text" class="form-control" id="editStudentPhone">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="editStudentEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="editStudentEmail">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editStudentAddress" class="form-label">Alamat</label>
+                                    <textarea class="form-control" id="editStudentAddress" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editStudentSubject" class="form-label">Mata Pelajaran</label>
+                                    <input type="text" class="form-control" id="editStudentSubject">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStudentNotes" class="form-label">Catatan</label>
+                            <textarea class="form-control" id="editStudentNotes" rows="2"></textarea>
+                        </div>
+                        
+                        <!-- Parent Management Section -->
+                        <hr>
+                        <h6>Kelola Parents</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h6>Parents saat ini:</h6>
+                                    <div id="editCurrentParents" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        <p class="text-muted">Memuat parents...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h6>Tambah Parent Baru:</h6>
+                                    <div class="mb-2">
+                                        <label class="form-label">Pilih Parent:</label>
+                                        <select class="form-select" id="editNewParentSelect">
+                                            <option value="">Pilih Parent</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Relasi:</label>
+                                        <select class="form-select" id="editNewRelationshipSelect">
+                                            <option value="ayah">Ayah</option>
+                                            <option value="ibu">Ibu</option>
+                                            <option value="wali">Wali</option>
+                                            <option value="kakak">Kakak</option>
+                                            <option value="adik">Adik</option>
+                                            <option value="lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="addParentToEditStudent()">
+                                        <i class="fas fa-plus"></i> Tambah Parent
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editStudentIsActive">
+                                <label class="form-check-label" for="editStudentIsActive">
+                                    Siswa Aktif
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="updateStudent()">Update Siswa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Detail Modal -->
+    <div class="modal fade" id="sessionDetailModal" tabindex="-1" aria-labelledby="sessionDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sessionDetailModalLabel">Detail Sesi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="sessionDetailContent">
+                        <p class="text-muted">Memuat detail sesi...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         let emotionChart = null;
         let trendChart = null;
@@ -841,8 +1518,11 @@
             loadDashboardData();
             loadUsers();
             loadStudents();
+            loadRelations();
             loadSessions();
             initializeCharts();
+            initializeAdminRealtime();
+            initializeNotificationSystem();
         });
         
         // Navigation
@@ -855,11 +1535,23 @@
             document.getElementById(section + 'Section').style.display = 'block';
             event.target.classList.add('active');
             
+            // Load specific data when section is shown
+            if (section === 'profile') {
+                loadProfile();
+            } else if (section === 'system') {
+                loadSystemStats();
+                loadSystemLogs();
+                loadDatabaseStats();
+            } else if (section === 'analytics') {
+                loadAnalyticsData();
+            }
+            
             // Update page title
             const titles = {
                 'home': 'Beranda',
                 'users': 'Manajemen User',
                 'students': 'Manajemen Siswa',
+                'relations': 'Relasi Parent-Siswa',
                 'sessions': 'Sesi Deteksi',
                 'analytics': 'Analytics',
                 'system': 'System',
@@ -888,6 +1580,9 @@
                     if (data.emotion_data) {
                         updateEmotionChart(data.emotion_data);
                     }
+                    
+                    // Load recent activity
+                    loadRecentActivity();
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -918,15 +1613,32 @@
             
             users.forEach(user => {
                 const tr = document.createElement('tr');
+                const approvalStatus = user.is_approved === null ? 'pending' : (user.is_approved ? 'approved' : 'rejected');
+                const approvalBadge = approvalStatus === 'pending' ? 
+                    '<span class="badge bg-warning">Pending</span>' :
+                    approvalStatus === 'approved' ? 
+                    '<span class="badge bg-success">Approved</span>' :
+                    '<span class="badge bg-danger">Rejected</span>';
+                
                 tr.innerHTML = `
+                    <td><input type="checkbox" value="${user.id}" class="user-checkbox"></td>
                     <td>${user.id}</td>
                     <td>${user.username}</td>
                     <td>${user.full_name}</td>
                     <td>${user.email}</td>
                     <td><span class="role-badge role-${user.role}">${user.role}</span></td>
                     <td><span class="status-badge status-${user.is_active ? 'active' : 'inactive'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td>${approvalBadge}</td>
                     <td>${user.last_login || 'Never'}</td>
                     <td>
+                        ${approvalStatus === 'pending' ? `
+                            <button class="btn btn-sm btn-success me-1" onclick="approveUser(${user.id})" title="Approve">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger me-1" onclick="rejectUser(${user.id})" title="Reject">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
                         <button class="btn btn-sm btn-warning me-1" onclick="editUser(${user.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -957,11 +1669,14 @@
             }
         }
         
-        function displayStudents(students) {
+        async function displayStudents(students) {
             const tbody = document.getElementById('studentsTable');
             tbody.innerHTML = '';
             
-            students.forEach(student => {
+            for (const student of students) {
+                // Get parents for this student
+                const parents = await getStudentParents(student.id);
+                
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${student.id}</td>
@@ -969,8 +1684,17 @@
                     <td>${student.full_name}</td>
                     <td>${student.class_name || '-'}</td>
                     <td>${student.birth_date || '-'}</td>
+                    <td>
+                        ${parents.length > 0 ? 
+                            parents.map(p => `<span class="badge bg-secondary me-1">${p.parent_name}</span>`).join('') : 
+                            '<span class="text-muted">Belum ada parent</span>'
+                        }
+                    </td>
                     <td><span class="status-badge status-${student.is_active ? 'active' : 'inactive'}">${student.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td>
+                        <button class="btn btn-sm btn-info me-1" onclick="manageStudentParents(${student.id})" title="Kelola Parents">
+                            <i class="fas fa-users"></i>
+                        </button>
                         <button class="btn btn-sm btn-warning me-1" onclick="editStudent(${student.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -980,7 +1704,242 @@
                     </td>
                 `;
                 tbody.appendChild(tr);
-            });
+            }
+        }
+        
+        async function getStudentParents(studentId) {
+            try {
+                const response = await fetch(`/api/admin/students/${studentId}/parents`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.parents || [];
+                }
+                return [];
+            } catch (error) {
+                console.error('Error loading student parents:', error);
+                return [];
+            }
+        }
+        
+        function manageStudentParents(studentId) {
+            // Show modal with student's parents management
+            showStudentParentsModal(studentId);
+        }
+        
+        async function showStudentParentsModal(studentId) {
+            try {
+                const response = await fetch(`/api/admin/students/${studentId}/parents`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const student = data.student;
+                    const parents = data.parents;
+                    
+                    // Create modal content
+                    const modalContent = `
+                        <div class="modal fade" id="studentParentsModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Kelola Parents untuk ${student.full_name}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <h6>Parents saat ini:</h6>
+                                            <div id="currentParents">
+                                                ${parents.length > 0 ? 
+                                                    parents.map(p => `
+                                                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                                            <span>${p.parent_name} (${p.relationship})</span>
+                                                            <button class="btn btn-sm btn-danger" onclick="removeParentFromStudent(${p.relation_id})">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    `).join('') : 
+                                                    '<p class="text-muted">Belum ada parent yang ditetapkan</p>'
+                                                }
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="mb-3">
+                                            <h6>Tambah Parent Baru:</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Pilih Parent:</label>
+                                                    <select class="form-select" id="newParentSelect">
+                                                        <option value="">Pilih Parent</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Relasi:</label>
+                                                    <select class="form-select" id="newRelationshipSelect">
+                                                        <option value="ayah">Ayah</option>
+                                                        <option value="ibu">Ibu</option>
+                                                        <option value="wali">Wali</option>
+                                                        <option value="kakak">Kakak</option>
+                                                        <option value="adik">Adik</option>
+                                                        <option value="lainnya">Lainnya</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">&nbsp;</label>
+                                                    <button class="btn btn-primary d-block" onclick="addParentToStudent(${studentId})">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Remove existing modal if any
+                    const existingModal = document.getElementById('studentParentsModal');
+                    if (existingModal) {
+                        existingModal.remove();
+                    }
+                    
+                    // Add modal to body
+                    document.body.insertAdjacentHTML('beforeend', modalContent);
+                    
+                    // Load parents for dropdown
+                    await loadParentsForStudentModal();
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('studentParentsModal'));
+                    modal.show();
+                    
+                    // Clean up modal when hidden
+                    document.getElementById('studentParentsModal').addEventListener('hidden.bs.modal', function() {
+                        this.remove();
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading student parents:', error);
+                alert('Error loading student parents: ' + error.message);
+            }
+        }
+        
+        async function loadParentsForStudentModal() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    const parents = users.filter(user => user.role === 'orang_tua');
+                    
+                    const select = document.getElementById('newParentSelect');
+                    select.innerHTML = '<option value="">Pilih Parent</option>';
+                    
+                    parents.forEach(parent => {
+                        const option = document.createElement('option');
+                        option.value = parent.id;
+                        option.textContent = `${parent.full_name} (${parent.username})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading parents:', error);
+            }
+        }
+        
+        async function addParentToStudent(studentId) {
+            const parentId = document.getElementById('newParentSelect').value;
+            const relationship = document.getElementById('newRelationshipSelect').value;
+            
+            if (!parentId || !relationship) {
+                alert('Pilih parent dan jenis relasi!');
+                return;
+            }
+            
+            try {
+                // Get student info first
+                const studentResponse = await fetch('/api/admin/students', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (!studentResponse.ok) {
+                    throw new Error('Failed to get student info');
+                }
+                
+                const students = await studentResponse.json();
+                const student = students.find(s => s.id === studentId);
+                
+                if (!student) {
+                    alert('Student tidak ditemukan!');
+                    return;
+                }
+                
+                const response = await fetch(`/api/parents/${parentId}/link-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify({
+                        student_code: student.student_code,
+                        relationship: relationship
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Parent berhasil ditambahkan!');
+                    bootstrap.Modal.getInstance(document.getElementById('studentParentsModal')).hide();
+                    loadStudents(); // Refresh students table
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error adding parent to student:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function removeParentFromStudent(relationId) {
+            if (!confirm('Yakin ingin menghapus relasi ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/parent-student-relations/${relationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Relasi berhasil dihapus!');
+                    bootstrap.Modal.getInstance(document.getElementById('studentParentsModal')).hide();
+                    loadStudents(); // Refresh students table
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error removing parent from student:', error);
+                alert('Error: ' + error.message);
+            }
         }
         
         // Load sessions
@@ -1151,37 +2110,1003 @@
         
         // User management
         function addUser() {
-            alert('Fitur tambah user akan segera tersedia!');
+            // Clear form
+            document.getElementById('addUserForm').reset();
+            document.getElementById('userIsActive').checked = true;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
+            modal.show();
         }
         
         function editUser(id) {
-            alert('Fitur edit user akan segera tersedia!');
+            // Find user data
+            const user = users.find(u => u.id === id);
+            if (!user) {
+                alert('User tidak ditemukan');
+                return;
+            }
+            
+            // Fill form
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUserUsername').value = user.username;
+            document.getElementById('editUserEmail').value = user.email;
+            document.getElementById('editUserFullName').value = user.full_name;
+            document.getElementById('editUserRole').value = user.role;
+            document.getElementById('editUserPhone').value = user.phone || '';
+            document.getElementById('editUserIsActive').checked = user.is_active;
+            document.getElementById('editUserIsApproved').checked = user.is_approved;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
         }
         
         function deleteUser(id) {
             if (confirm('Yakin ingin menghapus user ini?')) {
-                alert('Fitur hapus user akan segera tersedia!');
+                fetch(`/api/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('User berhasil dihapus');
+                        loadUsers();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat menghapus user');
+                });
             }
+        }
+        
+        function createUser() {
+            if (!validateUserForm()) {
+                return;
+            }
+            
+            const formData = {
+                username: document.getElementById('userUsername').value,
+                email: document.getElementById('userEmail').value,
+                full_name: document.getElementById('userFullName').value,
+                role: document.getElementById('userRole').value,
+                password: document.getElementById('userPassword').value,
+                phone: document.getElementById('userPhone').value,
+                is_active: document.getElementById('userIsActive').checked,
+                is_approved: document.getElementById('userIsApproved').checked
+            };
+            
+            fetch('/api/admin/users', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('User berhasil dibuat');
+                    bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+                    loadUsers();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat membuat user');
+            });
+        }
+        
+        function updateUser() {
+            if (!validateUserForm()) {
+                return;
+            }
+            
+            const userId = document.getElementById('editUserId').value;
+            const formData = {
+                username: document.getElementById('editUserUsername').value,
+                email: document.getElementById('editUserEmail').value,
+                full_name: document.getElementById('editUserFullName').value,
+                role: document.getElementById('editUserRole').value,
+                phone: document.getElementById('editUserPhone').value,
+                is_active: document.getElementById('editUserIsActive').checked,
+                is_approved: document.getElementById('editUserIsApproved').checked
+            };
+            
+            // Add password only if provided
+            const password = document.getElementById('editUserPassword').value;
+            if (password) {
+                formData.password = password;
+            }
+            
+            fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('User berhasil diupdate');
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    loadUsers();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate user');
+            });
         }
         
         // Student management
         function addStudent() {
-            alert('Fitur tambah siswa akan segera tersedia!');
+            // Clear form
+            document.getElementById('addStudentForm').reset();
+            document.getElementById('studentIsActive').checked = true;
+            
+            // Load available parents
+            loadAvailableParents();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addStudentModal'));
+            modal.show();
         }
         
-        function editStudent(id) {
-            alert('Fitur edit siswa akan segera tersedia!');
+        async function editStudent(id) {
+            try {
+                // Load student data
+                const response = await fetch(`/api/admin/students/${id}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (!response.ok) {
+                    alert('Siswa tidak ditemukan');
+                    return;
+                }
+                
+                const student = await response.json();
+                
+                // Fill form
+                document.getElementById('editStudentId').value = student.id;
+                document.getElementById('editStudentCode').value = student.student_code;
+                document.getElementById('editStudentFullName').value = student.full_name;
+                document.getElementById('editStudentClassName').value = student.class_name || '';
+                document.getElementById('editStudentBirthDate').value = student.birth_date || '';
+                document.getElementById('editStudentPhone').value = student.phone || '';
+                document.getElementById('editStudentEmail').value = student.email || '';
+                document.getElementById('editStudentAddress').value = student.address || '';
+                document.getElementById('editStudentSubject').value = student.subject || '';
+                document.getElementById('editStudentNotes').value = student.notes || '';
+                document.getElementById('editStudentIsActive').checked = student.is_active;
+                
+                // Load current parents
+                await loadEditStudentParents(id);
+                
+                // Load available parents for dropdown
+                await loadAvailableParentsForEdit();
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+                modal.show();
+                
+            } catch (error) {
+                console.error('Error loading student:', error);
+                alert('Error loading student: ' + error.message);
+            }
         }
         
         function deleteStudent(id) {
             if (confirm('Yakin ingin menghapus siswa ini?')) {
-                alert('Fitur hapus siswa akan segera tersedia!');
+                fetch(`/api/admin/students/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Siswa berhasil dihapus');
+                        loadStudents();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat menghapus siswa');
+                });
+            }
+        }
+        
+        function createStudent() {
+            if (!validateStudentForm()) {
+                return;
+            }
+            
+            const formData = {
+                student_code: document.getElementById('studentCode').value,
+                full_name: document.getElementById('studentFullName').value,
+                class_name: document.getElementById('studentClassName').value,
+                birth_date: document.getElementById('studentBirthDate').value,
+                phone: document.getElementById('studentPhone').value,
+                email: document.getElementById('studentEmail').value,
+                address: document.getElementById('studentAddress').value,
+                subject: document.getElementById('studentSubject').value,
+                notes: document.getElementById('studentNotes').value,
+                is_active: document.getElementById('studentIsActive').checked,
+                parent_ids: getSelectedParents()
+            };
+            
+            fetch('/api/admin/students', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Siswa berhasil dibuat');
+                    bootstrap.Modal.getInstance(document.getElementById('addStudentModal')).hide();
+                    loadStudents();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat membuat siswa');
+            });
+        }
+        
+        function loadAvailableParents() {
+            fetch('/api/admin/users', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const parents = data.filter(user => user.role === 'orang_tua' && user.is_active);
+                const container = document.getElementById('availableParents');
+                
+                if (parents.length === 0) {
+                    container.innerHTML = '<p class="text-muted">Tidak ada parent yang tersedia</p>';
+                    return;
+                }
+                
+                let html = '';
+                parents.forEach(parent => {
+                    html += `
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${parent.id}" id="parent_${parent.id}">
+                            <label class="form-check-label" for="parent_${parent.id}">
+                                ${parent.full_name} (${parent.email})
+                            </label>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('availableParents').innerHTML = '<p class="text-danger">Error memuat parents</p>';
+            });
+        }
+        
+        function getSelectedParents() {
+            const checkboxes = document.querySelectorAll('#availableParents input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+        
+        // Edit Student Functions
+        async function loadEditStudentParents(studentId) {
+            try {
+                const response = await fetch(`/api/admin/students/${studentId}/parents`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const parents = data.parents || [];
+                    
+                    const container = document.getElementById('editCurrentParents');
+                    if (parents.length > 0) {
+                        let html = '';
+                        parents.forEach(parent => {
+                            html += `
+                                <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                    <span>${parent.parent_name} (${parent.relationship})</span>
+                                    <button class="btn btn-sm btn-danger" onclick="removeParentFromEditStudent(${parent.relation_id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<p class="text-muted">Belum ada parent yang ditetapkan</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading edit student parents:', error);
+                document.getElementById('editCurrentParents').innerHTML = '<p class="text-danger">Error memuat parents</p>';
+            }
+        }
+        
+        async function loadAvailableParentsForEdit() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    const parents = users.filter(user => user.role === 'orang_tua' && user.is_active);
+                    
+                    const select = document.getElementById('editNewParentSelect');
+                    select.innerHTML = '<option value="">Pilih Parent</option>';
+                    
+                    parents.forEach(parent => {
+                        const option = document.createElement('option');
+                        option.value = parent.id;
+                        option.textContent = `${parent.full_name} (${parent.username})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading parents for edit:', error);
+            }
+        }
+        
+        async function addParentToEditStudent() {
+            const studentId = document.getElementById('editStudentId').value;
+            const parentId = document.getElementById('editNewParentSelect').value;
+            const relationship = document.getElementById('editNewRelationshipSelect').value;
+            
+            if (!parentId || !relationship) {
+                alert('Pilih parent dan jenis relasi!');
+                return;
+            }
+            
+            try {
+                // Get student info first
+                const studentResponse = await fetch(`/api/admin/students/${studentId}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (!studentResponse.ok) {
+                    throw new Error('Failed to get student info');
+                }
+                
+                const student = await studentResponse.json();
+                
+                const response = await fetch(`/api/parents/${parentId}/link-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify({
+                        student_code: student.student_code,
+                        relationship: relationship
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Parent berhasil ditambahkan!');
+                    await loadEditStudentParents(studentId);
+                    loadStudents(); // Refresh students table
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error adding parent to edit student:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function removeParentFromEditStudent(relationId) {
+            if (!confirm('Yakin ingin menghapus relasi ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/parent-student-relations/${relationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Relasi berhasil dihapus!');
+                    const studentId = document.getElementById('editStudentId').value;
+                    await loadEditStudentParents(studentId);
+                    loadStudents(); // Refresh students table
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error removing parent from edit student:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function updateStudent() {
+            if (!validateStudentForm()) {
+                return;
+            }
+            
+            const studentId = document.getElementById('editStudentId').value;
+            const formData = {
+                student_code: document.getElementById('editStudentCode').value,
+                full_name: document.getElementById('editStudentFullName').value,
+                class_name: document.getElementById('editStudentClassName').value,
+                birth_date: document.getElementById('editStudentBirthDate').value,
+                phone: document.getElementById('editStudentPhone').value,
+                email: document.getElementById('editStudentEmail').value,
+                address: document.getElementById('editStudentAddress').value,
+                subject: document.getElementById('editStudentSubject').value,
+                notes: document.getElementById('editStudentNotes').value,
+                is_active: document.getElementById('editStudentIsActive').checked
+            };
+            
+            try {
+                const response = await fetch(`/api/admin/students/${studentId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    alert('Siswa berhasil diupdate!');
+                    bootstrap.Modal.getInstance(document.getElementById('editStudentModal')).hide();
+                    loadStudents();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error updating student:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // User Approval Functions
+        async function approveUser(userId) {
+            if (!confirm('Yakin ingin menyetujui user ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ approved: true })
+                });
+                
+                if (response.ok) {
+                    alert('User berhasil disetujui!');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error approving user:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function rejectUser(userId) {
+            if (!confirm('Yakin ingin menolak user ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ approved: false })
+                });
+                
+                if (response.ok) {
+                    alert('User berhasil ditolak!');
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error rejecting user:', error);
+                alert('Error: ' + error.message);
             }
         }
         
         // Session management
         function viewSession(id) {
-            alert('Fitur detail sesi akan segera tersedia!');
+            fetch(`/api/admin/sessions/${id}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                displaySessionDetail(data);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('sessionDetailModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memuat detail sesi');
+            });
+        }
+        
+        function displaySessionDetail(data) {
+            const container = document.getElementById('sessionDetailContent');
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informasi Sesi</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Nama Sesi:</strong></td><td>${data.session.session_name || '-'}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="badge bg-${data.session.status === 'active' ? 'success' : 'secondary'}">${data.session.status}</span></td></tr>
+                            <tr><td><strong>Mulai:</strong></td><td>${data.session.start_time ? new Date(data.session.start_time).toLocaleString() : '-'}</td></tr>
+                            <tr><td><strong>Selesai:</strong></td><td>${data.session.end_time ? new Date(data.session.end_time).toLocaleString() : '-'}</td></tr>
+                            <tr><td><strong>Total Deteksi:</strong></td><td>${data.total_logs}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informasi Siswa & Guru</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Siswa:</strong></td><td>${data.student ? data.student.full_name : '-'}</td></tr>
+                            <tr><td><strong>Kode Siswa:</strong></td><td>${data.student ? data.student.student_code : '-'}</td></tr>
+                            <tr><td><strong>Kelas:</strong></td><td>${data.student ? data.student.class_name : '-'}</td></tr>
+                            <tr><td><strong>Guru:</strong></td><td>${data.teacher ? data.teacher.full_name : '-'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Statistik Emosi</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Emosi</th>
+                                        <th>Jumlah</th>
+                                        <th>Rata-rata Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            Object.entries(data.emotion_stats).forEach(([emotion, stats]) => {
+                html += `
+                    <tr>
+                        <td><span class="badge bg-primary">${emotion}</span></td>
+                        <td>${stats.count}</td>
+                        <td>${(stats.avg_confidence * 100).toFixed(1)}%</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Log Emosi Terbaru</h6>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Waktu</th>
+                                        <th>Emosi</th>
+                                        <th>Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            data.emotion_logs.slice(0, 10).forEach(log => {
+                html += `
+                    <tr>
+                        <td>${new Date(log.detected_at).toLocaleTimeString()}</td>
+                        <td><span class="badge bg-info">${log.emotion}</span></td>
+                        <td>${log.confidence_score ? (log.confidence_score * 100).toFixed(1) + '%' : '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Profile management
+        function loadProfile() {
+            fetch('/api/admin/profile', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Fill profile form
+                document.getElementById('profileUsername').value = data.username;
+                document.getElementById('profileEmail').value = data.email;
+                document.getElementById('profileFullName').value = data.full_name;
+                document.getElementById('profilePhone').value = data.phone || '';
+                document.getElementById('profileRole').value = data.role;
+                document.getElementById('profileIsActive').checked = data.is_active;
+                
+                // Fill account info
+                document.getElementById('profileCreatedAt').textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '-';
+                document.getElementById('profileUpdatedAt').textContent = data.updated_at ? new Date(data.updated_at).toLocaleString() : '-';
+                document.getElementById('profileLastLogin').textContent = data.last_login ? new Date(data.last_login).toLocaleString() : '-';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memuat profil');
+            });
+        }
+        
+        function updateProfile() {
+            const formData = {
+                email: document.getElementById('profileEmail').value,
+                full_name: document.getElementById('profileFullName').value,
+                phone: document.getElementById('profilePhone').value
+            };
+            
+            fetch('/api/admin/profile', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Profil berhasil diupdate');
+                    loadProfile(); // Reload profile data
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengupdate profil');
+            });
+        }
+        
+        function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showNotification('Semua field password harus diisi', 'warning');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showNotification('Password baru dan konfirmasi password tidak sama', 'warning');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showNotification('Password baru minimal 6 karakter', 'warning');
+                return;
+            }
+            
+            const formData = {
+                current_password: currentPassword,
+                new_password: newPassword
+            };
+            
+            fetch('/api/admin/change-password', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'danger');
+                } else {
+                    showNotification('Password berhasil diubah', 'success');
+                    document.getElementById('passwordForm').reset();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Terjadi kesalahan saat mengubah password', 'danger');
+            });
+        }
+        
+        // Relations management
+        async function loadRelations() {
+            try {
+                const response = await fetch('/api/admin/parent-student-relations', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const relations = await response.json();
+                    displayRelations(relations);
+                    populateFilters(relations);
+                }
+            } catch (error) {
+                console.error('Error loading relations:', error);
+            }
+        }
+        
+        function displayRelations(relations) {
+            const tbody = document.getElementById('relationsTable');
+            tbody.innerHTML = '';
+            
+            relations.forEach(relation => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${relation.id}</td>
+                    <td>${relation.student_name} (${relation.student_code})</td>
+                    <td>${relation.parent_name} (${relation.parent_username})</td>
+                    <td><span class="badge bg-info">${relation.relationship}</span></td>
+                    <td>${relation.created_at ? new Date(relation.created_at).toLocaleDateString() : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRelation(${relation.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function populateFilters(relations) {
+            const studentFilter = document.getElementById('studentFilter');
+            const parentFilter = document.getElementById('parentFilter');
+            
+            // Clear existing options
+            studentFilter.innerHTML = '<option value="">Semua Siswa</option>';
+            parentFilter.innerHTML = '<option value="">Semua Parent</option>';
+            
+            // Get unique students and parents
+            const students = [...new Set(relations.map(r => ({id: r.student_id, name: r.student_name, code: r.student_code})))];
+            const parents = [...new Set(relations.map(r => ({id: r.parent_id, name: r.parent_name, username: r.parent_username})))];
+            
+            students.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.id;
+                option.textContent = `${student.name} (${student.code})`;
+                studentFilter.appendChild(option);
+            });
+            
+            parents.forEach(parent => {
+                const option = document.createElement('option');
+                option.value = parent.id;
+                option.textContent = `${parent.name} (${parent.username})`;
+                parentFilter.appendChild(option);
+            });
+        }
+        
+        async function showAddRelationModal() {
+            // Load parents and students for dropdown
+            await loadParentsForModal();
+            await loadStudentsForModal();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addRelationModal'));
+            modal.show();
+        }
+        
+        async function loadParentsForModal() {
+            try {
+                const response = await fetch('/api/admin/users', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const users = await response.json();
+                    const parents = users.filter(user => user.role === 'orang_tua');
+                    
+                    const select = document.getElementById('parentSelect');
+                    select.innerHTML = '<option value="">Pilih Parent</option>';
+                    
+                    parents.forEach(parent => {
+                        const option = document.createElement('option');
+                        option.value = parent.id;
+                        option.textContent = `${parent.full_name} (${parent.username})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading parents:', error);
+            }
+        }
+        
+        async function loadStudentsForModal() {
+            try {
+                const response = await fetch('/api/admin/students', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const students = await response.json();
+                    
+                    const select = document.getElementById('studentSelect');
+                    select.innerHTML = '<option value="">Pilih Siswa</option>';
+                    
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.student_code;
+                        option.textContent = `${student.full_name} (${student.student_code})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+        
+        async function addRelation() {
+            const parentId = document.getElementById('parentSelect').value;
+            const studentCode = document.getElementById('studentSelect').value;
+            const relationship = document.getElementById('relationshipSelect').value;
+            
+            if (!parentId || !studentCode || !relationship) {
+                alert('Semua field harus diisi!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/parents/${parentId}/link-student`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify({
+                        student_code: studentCode,
+                        relationship: relationship
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('Relasi berhasil ditambahkan!');
+                    bootstrap.Modal.getInstance(document.getElementById('addRelationModal')).hide();
+                    loadRelations();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error adding relation:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function deleteRelation(relationId) {
+            if (!confirm('Yakin ingin menghapus relasi ini?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/parent-student-relations/${relationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Relasi berhasil dihapus!');
+                    loadRelations();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error deleting relation:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function filterByStudent() {
+            const studentId = document.getElementById('studentFilter').value;
+            filterRelations('student', studentId);
+        }
+        
+        function filterByParent() {
+            const parentId = document.getElementById('parentFilter').value;
+            filterRelations('parent', parentId);
+        }
+        
+        function filterRelations(type, id) {
+            const rows = document.querySelectorAll('#relationsTable tr');
+            rows.forEach(row => {
+                if (row.cells.length > 0) {
+                    const shouldShow = !id || row.dataset[type + 'Id'] === id;
+                    row.style.display = shouldShow ? '' : 'none';
+                }
+            });
+        }
+        
+        function clearFilters() {
+            document.getElementById('studentFilter').value = '';
+            document.getElementById('parentFilter').value = '';
+            
+            const rows = document.querySelectorAll('#relationsTable tr');
+            rows.forEach(row => {
+                row.style.display = '';
+            });
         }
         
         // Sidebar toggle function
@@ -1201,11 +3126,906 @@
             }
         }
 
+        // Initialize Admin WebSocket
+        function initializeAdminRealtime() {
+            try {
+                const socket = io();
+                const token = localStorage.getItem('access_token');
+                
+                socket.on('connected', () => {
+                    console.log('Admin WebSocket connected');
+                    socket.emit('join_admin', { token });
+                });
+                
+                socket.on('joined', (data) => {
+                    console.log('Joined admin room:', data.room);
+                });
+                
+                socket.on('system_stats', (data) => {
+                    console.log('System stats update:', data);
+                    updateSystemStats(data);
+                    showNotification('System stats updated', 'info');
+                });
+                
+                socket.on('user_activity', (data) => {
+                    console.log('User activity:', data);
+                    updateUserActivityLog(data);
+                    updateRecentActivity(data);
+                });
+                
+                socket.on('session_activity', (data) => {
+                    console.log('Session activity:', data);
+                    if (data.type === 'started' || data.type === 'stopped') {
+                        loadSessions();
+                        loadDashboardData();
+                        showNotification(`Session ${data.type}: ${data.session_name}`, 'info');
+                    }
+                });
+                
+                socket.on('user_approval', (data) => {
+                    console.log('User approval update:', data);
+                    showNotification(`User ${data.username} ${data.approved ? 'approved' : 'rejected'}`, data.approved ? 'success' : 'warning');
+                    loadUsers();
+                });
+                
+                socket.on('student_update', (data) => {
+                    console.log('Student update:', data);
+                    showNotification(`Student ${data.student_name} updated`, 'info');
+                    loadStudents();
+                });
+                
+                socket.on('system_alert', (data) => {
+                    console.log('System alert:', data);
+                    showAdminAlert(data.title, data.message, data.type, data.actions || []);
+                });
+                
+                socket.on('maintenance_notification', (data) => {
+                    console.log('Maintenance notification:', data);
+                    showAdminAlert(
+                        'System Maintenance', 
+                        data.message, 
+                        'warning',
+                        [
+                            { text: 'View Details', type: 'info', onclick: 'loadSystemLogs()' },
+                            { text: 'Refresh Stats', type: 'primary', onclick: 'refreshSystemStats()' }
+                        ]
+                    );
+                });
+                
+                socket.on('error', (data) => {
+                    console.error('Admin WebSocket error:', data);
+                    showNotification('Connection error: ' + data.error, 'danger');
+                });
+                
+                // Handle reconnection
+                socket.on('disconnect', () => {
+                    console.log('Admin WebSocket disconnected');
+                    showNotification('Connection lost. Reconnecting...', 'warning');
+                });
+                
+                socket.on('reconnect', () => {
+                    console.log('Admin WebSocket reconnected');
+                    showNotification('Connection restored!', 'success');
+                    socket.emit('join_admin', { token });
+                });
+                
+                // Periodic system health check
+                setInterval(() => {
+                    socket.emit('admin_health_check', { timestamp: new Date().toISOString() });
+                }, 60000); // Every minute
+                
+            } catch (e) {
+                console.warn('Admin WebSocket initialization failed:', e);
+            }
+        }
+        
+        function updateSystemStats(data) {
+            // Update system monitoring section
+            if (data.cpu_usage !== undefined) {
+                const cpuElement = document.getElementById('systemCpu');
+                if (cpuElement) cpuElement.textContent = data.cpu_usage + '%';
+            }
+            if (data.memory_usage !== undefined) {
+                const memoryElement = document.getElementById('systemMemory');
+                if (memoryElement) memoryElement.textContent = data.memory_usage + '%';
+            }
+            if (data.active_sessions !== undefined) {
+                const sessionsElement = document.getElementById('activeSessions');
+                if (sessionsElement) sessionsElement.textContent = data.active_sessions;
+            }
+        }
+        
+        function updateUserActivityLog(data) {
+            // Add to activity log
+            const activityLog = document.getElementById('activityLog');
+            if (activityLog) {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'd-flex align-items-center mb-2 p-2 bg-light rounded';
+                activityItem.innerHTML = `
+                    <i class="fas fa-user-circle me-2" style="color: #3b82f6;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${data.user_name}</strong> ${data.action}
+                        <br><small class="text-muted">${new Date(data.timestamp).toLocaleString()}</small>
+                    </div>
+                `;
+                activityLog.insertBefore(activityItem, activityLog.firstChild);
+                
+                // Keep only last 20 activities
+                while (activityLog.children.length > 20) {
+                    activityLog.removeChild(activityLog.lastChild);
+                }
+            }
+        }
+        
+        function updateRecentActivity(data) {
+            // Add to recent activity in dashboard home
+            const recentActivity = document.getElementById('recentActivity');
+            if (recentActivity) {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'd-flex align-items-center mb-3 p-2 bg-light rounded';
+                
+                const icon = data.type === 'session_start' ? 'fa-play-circle' :
+                            data.type === 'session_end' ? 'fa-stop-circle' :
+                            data.type === 'user_login' ? 'fa-sign-in-alt' :
+                            data.type === 'user_register' ? 'fa-user-plus' :
+                            data.type === 'emotion_detected' ? 'fa-smile' : 'fa-info-circle';
+                
+                const color = data.type === 'session_start' ? 'success' :
+                             data.type === 'session_end' ? 'warning' :
+                             data.type === 'user_login' ? 'info' :
+                             data.type === 'user_register' ? 'primary' :
+                             data.type === 'emotion_detected' ? 'secondary' : 'muted';
+                
+                activityItem.innerHTML = `
+                    <i class="fas ${icon} me-3 text-${color}"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${data.description}</div>
+                        <small class="text-muted">${new Date(data.timestamp).toLocaleString()}</small>
+                    </div>
+                `;
+                
+                recentActivity.insertBefore(activityItem, recentActivity.firstChild);
+                
+                // Keep only last 10 activities
+                while (recentActivity.children.length > 10) {
+                    recentActivity.removeChild(recentActivity.lastChild);
+                }
+            }
+        }
+        
+        // Analytics Functions
+        async function loadAnalyticsData() {
+            try {
+                // Load emotion trend data
+                const trendResponse = await fetch('/api/admin/analytics/emotion-trends', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (trendResponse.ok) {
+                    const trendData = await trendResponse.json();
+                    updateTrendChart(trendData);
+                }
+                
+                // Load role activity data
+                const roleResponse = await fetch('/api/admin/analytics/role-activity', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (roleResponse.ok) {
+                    const roleData = await roleResponse.json();
+                    updateRoleChart(roleData);
+                }
+                
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
+            }
+        }
+        
+        function updateTrendChart(data) {
+            if (trendChart && data.labels && data.values) {
+                trendChart.data.labels = data.labels;
+                trendChart.data.datasets[0].data = data.values;
+                trendChart.update();
+            }
+        }
+        
+        function updateRoleChart(data) {
+            if (roleChart && data.labels && data.values) {
+                roleChart.data.labels = data.labels;
+                roleChart.data.datasets[0].data = data.values;
+                roleChart.update();
+            }
+        }
+        
+        // System Monitoring Functions
+        async function loadSystemStats() {
+            try {
+                const response = await fetch('/api/admin/system-stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySystemStats(data);
+                }
+            } catch (error) {
+                console.error('Error loading system stats:', error);
+                document.getElementById('systemStats').innerHTML = '<p class="text-danger">Error memuat statistik sistem</p>';
+            }
+        }
+        
+        function displaySystemStats(data) {
+            const container = document.getElementById('systemStats');
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>System Status</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>WebSocket Status:</strong></td><td><span class="badge bg-success">Connected</span></td></tr>
+                            <tr><td><strong>Redis Status:</strong></td><td><span class="badge bg-${data.redis?.status === 'unavailable' ? 'danger' : 'success'}">${data.redis?.status || 'Available'}</span></td></tr>
+                            <tr><td><strong>Connected Clients:</strong></td><td>${data.redis?.connected_clients || 0}</td></tr>
+                            <tr><td><strong>Memory Usage:</strong></td><td>${data.redis?.used_memory || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Performance</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Uptime:</strong></td><td>${data.uptime || 'N/A'}</td></tr>
+                            <tr><td><strong>Last Backup:</strong></td><td>${data.last_backup || 'Never'}</td></tr>
+                            <tr><td><strong>Cache Hit Rate:</strong></td><td>${data.cache_hit_rate || 'N/A'}</td></tr>
+                            <tr><td><strong>Response Time:</strong></td><td>${data.response_time || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            
+            // Also update database stats
+            displayDatabaseStats(data.database);
+        }
+        
+        function displayDatabaseStats(data) {
+            const container = document.getElementById('databaseStats');
+            if (data) {
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Database Statistics</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Total Students:</strong></td><td>${data.total_students || 0}</td></tr>
+                                <tr><td><strong>Total Users:</strong></td><td>${data.total_users || 0}</td></tr>
+                                <tr><td><strong>Total Sessions:</strong></td><td>${data.total_sessions || 0}</td></tr>
+                                <tr><td><strong>Active Sessions:</strong></td><td>${data.active_sessions || 0}</td></tr>
+                                <tr><td><strong>Recent Logs (24h):</strong></td><td>${data.recent_logs_24h || 0}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Database Health</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Connection Status:</strong></td><td><span class="badge bg-success">Connected</span></td></tr>
+                                <tr><td><strong>Database Size:</strong></td><td>${data.database_size || 'N/A'}</td></tr>
+                                <tr><td><strong>Last Maintenance:</strong></td><td>${data.last_maintenance || 'N/A'}</td></tr>
+                                <tr><td><strong>Query Performance:</strong></td><td><span class="badge bg-success">Good</span></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-muted">Database statistics not available</p>';
+            }
+        }
+        
+        async function loadSystemLogs() {
+            try {
+                const response = await fetch('/api/admin/system-logs', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySystemLogs(data);
+                }
+            } catch (error) {
+                console.error('Error loading system logs:', error);
+                document.getElementById('systemLogs').innerHTML = '<p class="text-danger">Error memuat log sistem</p>';
+            }
+        }
+        
+        function displaySystemLogs(logs) {
+            const container = document.getElementById('systemLogs');
+            if (logs && logs.length > 0) {
+                let html = '';
+                logs.slice(0, 20).forEach(log => {
+                    const logLevel = log.level || 'info';
+                    const badgeClass = logLevel === 'error' ? 'danger' : 
+                                     logLevel === 'warning' ? 'warning' : 
+                                     logLevel === 'success' ? 'success' : 'info';
+                    
+                    html += `
+                        <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
+                            <span class="badge bg-${badgeClass} me-2">${logLevel.toUpperCase()}</span>
+                            <div class="flex-grow-1">
+                                <small>${log.message}</small>
+                                <br><small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-muted">Tidak ada log sistem tersedia</p>';
+            }
+        }
+        
+        async function createBackup() {
+            if (!confirm('Yakin ingin membuat backup database?')) return;
+            
+            try {
+                const response = await fetch('/api/admin/create-backup', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert('Backup berhasil dibuat: ' + data.filename);
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error creating backup:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function compressData() {
+            if (!confirm('Yakin ingin mengkompres data lama? Operasi ini tidak dapat dibatalkan.')) return;
+            
+            try {
+                const response = await fetch('/api/admin/compress-data', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert('Data berhasil dikompres: ' + data.message);
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error compressing data:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function refreshSystemStats() {
+            loadSystemStats();
+            loadSystemLogs();
+            loadDatabaseStats();
+            showNotification('System stats refreshed!', 'success');
+        }
+        
+        async function loadDatabaseStats() {
+            try {
+                const response = await fetch('/api/admin/database-stats', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayDatabaseStats(data);
+                }
+            } catch (error) {
+                console.error('Error loading database stats:', error);
+                document.getElementById('databaseStats').innerHTML = '<p class="text-danger">Error memuat statistik database</p>';
+            }
+        }
+        
+        // Recent Activity Function
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch('/api/admin/recent-activity', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                
+                if (response.ok) {
+                    const activities = await response.json();
+                    displayRecentActivity(activities);
+                }
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                document.getElementById('recentActivity').innerHTML = '<p class="text-danger">Error memuat aktivitas</p>';
+            }
+        }
+        
+        function displayRecentActivity(activities) {
+            const container = document.getElementById('recentActivity');
+            if (activities && activities.length > 0) {
+                let html = '';
+                activities.slice(0, 10).forEach(activity => {
+                    const icon = activity.type === 'session_start' ? 'fa-play-circle' :
+                                activity.type === 'session_end' ? 'fa-stop-circle' :
+                                activity.type === 'user_login' ? 'fa-sign-in-alt' :
+                                activity.type === 'user_register' ? 'fa-user-plus' :
+                                activity.type === 'emotion_detected' ? 'fa-smile' : 'fa-info-circle';
+                    
+                    const color = activity.type === 'session_start' ? 'success' :
+                                 activity.type === 'session_end' ? 'warning' :
+                                 activity.type === 'user_login' ? 'info' :
+                                 activity.type === 'user_register' ? 'primary' :
+                                 activity.type === 'emotion_detected' ? 'secondary' : 'muted';
+                    
+                    html += `
+                        <div class="d-flex align-items-center mb-3 p-2 bg-light rounded">
+                            <i class="fas ${icon} me-3 text-${color}"></i>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">${activity.description}</div>
+                                <small class="text-muted">${new Date(activity.timestamp).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="text-muted">Tidak ada aktivitas terbaru</p>';
+            }
+        }
+        
+        // Notification System
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+            
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'danger' ? 'fa-exclamation-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-bell';
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${icon} me-2"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after specified duration
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+        
+        // Advanced notification system for admin alerts
+        function showAdminAlert(title, message, type = 'info', actions = []) {
+            const alertModal = document.createElement('div');
+            alertModal.className = 'modal fade';
+            alertModal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-${type} text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                                ${title}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>${message}</p>
+                        </div>
+                        <div class="modal-footer">
+                            ${actions.map(action => `
+                                <button type="button" class="btn btn-${action.type || 'secondary'}" onclick="${action.onclick}">
+                                    ${action.text}
+                                </button>
+                            `).join('')}
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(alertModal);
+            const modal = new bootstrap.Modal(alertModal);
+            modal.show();
+            
+            // Clean up when modal is hidden
+            alertModal.addEventListener('hidden.bs.modal', () => {
+                alertModal.remove();
+            });
+        }
+        
+        // Auto-refresh dashboard data every 30 seconds
+        setInterval(loadDashboardData, 30000);
+        
+        // Auto-refresh system stats every 60 seconds
+        setInterval(() => {
+            if (document.getElementById('systemSection').style.display !== 'none') {
+                loadSystemStats();
+                loadSystemLogs();
+                loadDatabaseStats();
+            }
+        }, 60000);
+        
+        // Auto-refresh analytics every 2 minutes
+        setInterval(() => {
+            if (document.getElementById('analyticsSection').style.display !== 'none') {
+                loadAnalyticsData();
+            }
+        }, 120000);
+        
+        // Initialize notification system
+        function initializeNotificationSystem() {
+            // Check for pending notifications
+            const pendingNotifications = JSON.parse(localStorage.getItem('pendingNotifications') || '[]');
+            pendingNotifications.forEach(notification => {
+                showNotification(notification.message, notification.type, notification.duration);
+            });
+            localStorage.removeItem('pendingNotifications');
+        }
+        
+        // Store notification for later display
+        function storeNotification(message, type = 'info', duration = 5000) {
+            const notifications = JSON.parse(localStorage.getItem('pendingNotifications') || '[]');
+            notifications.push({ message, type, duration, timestamp: new Date().toISOString() });
+            localStorage.setItem('pendingNotifications', JSON.stringify(notifications));
+        }
+        
+        // Enhanced error handling
+        function handleApiError(error, context = '') {
+            console.error(`API Error ${context}:`, error);
+            let message = 'Terjadi kesalahan pada sistem';
+            
+            if (error.response) {
+                // Server responded with error status
+                message = `Error ${error.response.status}: ${error.response.statusText}`;
+            } else if (error.request) {
+                // Request was made but no response received
+                message = 'Tidak dapat terhubung ke server';
+            } else {
+                // Something else happened
+                message = error.message || 'Terjadi kesalahan yang tidak diketahui';
+            }
+            
+            showNotification(message, 'danger', 8000);
+        }
+        
+        // Global error handler for fetch requests
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response;
+            } catch (error) {
+                handleApiError(error, `fetching ${url}`);
+                throw error;
+            }
+        }
+        
+        // Utility function to format numbers
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+        
+        // Utility function to format dates
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Baru saja';
+            if (diffMins < 60) return `${diffMins} menit yang lalu`;
+            if (diffHours < 24) return `${diffHours} jam yang lalu`;
+            if (diffDays < 7) return `${diffDays} hari yang lalu`;
+            
+            return date.toLocaleDateString('id-ID');
+        }
+        
+        // Export data functionality
+        function exportData(type) {
+            let endpoint = '';
+            let filename = '';
+            
+            switch(type) {
+                case 'users':
+                    endpoint = '/api/admin/export/users';
+                    filename = 'users_export.csv';
+                    break;
+                case 'students':
+                    endpoint = '/api/admin/export/students';
+                    filename = 'students_export.csv';
+                    break;
+                case 'sessions':
+                    endpoint = '/api/admin/export/sessions';
+                    filename = 'sessions_export.csv';
+                    break;
+                case 'emotions':
+                    endpoint = '/api/admin/export/emotions';
+                    filename = 'emotions_export.csv';
+                    break;
+                default:
+                    showNotification('Tipe export tidak valid', 'warning');
+                    return;
+            }
+            
+            fetch(endpoint, {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Export failed');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showNotification(`Data ${type} berhasil diekspor`, 'success');
+            })
+            .catch(error => {
+                handleApiError(error, `exporting ${type}`);
+            });
+        }
+        
+        // Bulk operations
+        function bulkApproveUsers() {
+            const checkboxes = document.querySelectorAll('#usersTable input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showNotification('Pilih user yang akan disetujui', 'warning');
+                return;
+            }
+            
+            const userIds = Array.from(checkboxes).map(cb => cb.value);
+            const promises = userIds.map(userId => 
+                fetch(`/api/admin/users/${userId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ approved: true })
+                })
+            );
+            
+            Promise.all(promises)
+            .then(() => {
+                showNotification(`${userIds.length} user berhasil disetujui`, 'success');
+                loadUsers();
+            })
+            .catch(error => {
+                handleApiError(error, 'bulk approving users');
+            });
+        }
+        
+        function bulkRejectUsers() {
+            const checkboxes = document.querySelectorAll('#usersTable input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showNotification('Pilih user yang akan ditolak', 'warning');
+                return;
+            }
+            
+            const userIds = Array.from(checkboxes).map(cb => cb.value);
+            const promises = userIds.map(userId => 
+                fetch(`/api/admin/users/${userId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ approved: false })
+                })
+            );
+            
+            Promise.all(promises)
+            .then(() => {
+                showNotification(`${userIds.length} user berhasil ditolak`, 'success');
+                loadUsers();
+            })
+            .catch(error => {
+                handleApiError(error, 'bulk rejecting users');
+            });
+        }
+        
+        function toggleAllUsers() {
+            const selectAll = document.getElementById('selectAllUsers');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+        }
+        
+        // Handle page refresh when token expires
+        setInterval(() => {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+            }
+        }, 60000); // Check every minute
+
         // Logout
         function logout() {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            if (confirm('Yakin ingin logout?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('pendingNotifications');
+                window.location.href = '/login';
+            }
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K for quick search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                showNotification('Quick search feature coming soon!', 'info');
+            }
+            
+            // Ctrl/Cmd + N for new user
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                if (document.getElementById('usersSection').style.display !== 'none') {
+                    addUser();
+                } else if (document.getElementById('studentsSection').style.display !== 'none') {
+                    addStudent();
+                }
+            }
+            
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(modal => {
+                    const bsModal = bootstrap.Modal.getInstance(modal);
+                    if (bsModal) bsModal.hide();
+                });
+            }
+        });
+        
+        // Performance monitoring
+        function logPerformance(operation, startTime) {
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            console.log(`${operation} took ${duration.toFixed(2)}ms`);
+            
+            if (duration > 1000) {
+                showNotification(`Slow operation detected: ${operation}`, 'warning', 3000);
+            }
+        }
+        
+        // Enhanced loading states
+        function showLoading(elementId, message = 'Loading...') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center" style="min-height: 100px;">
+                        <div class="spinner-border text-primary me-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span>${message}</span>
+                    </div>
+                `;
+            }
+        }
+        
+        // Data validation helpers
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        function validatePhone(phone) {
+            const re = /^[\+]?[1-9][\d]{0,15}$/;
+            return re.test(phone.replace(/\s/g, ''));
+        }
+        
+        function validateStudentCode(code) {
+            const re = /^[A-Z0-9]{3,10}$/;
+            return re.test(code);
+        }
+        
+        // Form validation
+        function validateUserForm() {
+            const username = document.getElementById('userUsername').value;
+            const email = document.getElementById('userEmail').value;
+            const fullName = document.getElementById('userFullName').value;
+            const role = document.getElementById('userRole').value;
+            const password = document.getElementById('userPassword').value;
+            
+            if (!username || username.length < 3) {
+                showNotification('Username minimal 3 karakter', 'warning');
+                return false;
+            }
+            
+            if (!validateEmail(email)) {
+                showNotification('Format email tidak valid', 'warning');
+                return false;
+            }
+            
+            if (!fullName || fullName.length < 2) {
+                showNotification('Nama lengkap minimal 2 karakter', 'warning');
+                return false;
+            }
+            
+            if (!role) {
+                showNotification('Pilih role', 'warning');
+                return false;
+            }
+            
+            if (!password || password.length < 6) {
+                showNotification('Password minimal 6 karakter', 'warning');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validateStudentForm() {
+            const studentCode = document.getElementById('studentCode').value;
+            const fullName = document.getElementById('studentFullName').value;
+            const className = document.getElementById('studentClassName').value;
+            const email = document.getElementById('studentEmail').value;
+            
+            if (!validateStudentCode(studentCode)) {
+                showNotification('Kode siswa harus 3-10 karakter alfanumerik', 'warning');
+                return false;
+            }
+            
+            if (!fullName || fullName.length < 2) {
+                showNotification('Nama lengkap minimal 2 karakter', 'warning');
+                return false;
+            }
+            
+            if (!className || className.length < 1) {
+                showNotification('Kelas harus diisi', 'warning');
+                return false;
+            }
+            
+            if (email && !validateEmail(email)) {
+                showNotification('Format email tidak valid', 'warning');
+                return false;
+            }
+            
+            return true;
         }
     </script>
 </body>

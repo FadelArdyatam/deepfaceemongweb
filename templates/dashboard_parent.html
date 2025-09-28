@@ -284,6 +284,21 @@
             box-shadow: 0 12px 35px rgba(251, 146, 60, 0.4);
         }
 
+        /* Loading overlay for sections */
+        .section-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(2px);
+            z-index: 10;
+            border-radius: 16px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
         .emotion-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -566,26 +581,29 @@
                     <h4><i class="fas fa-heart me-2"></i>EMONG</h4>
                     <p>Dashboard Orang Tua</p>
                 </div>
-                <nav class="nav flex-column">
-                    <a class="nav-link active" href="#home" onclick="showSection('home')">
-                        <i class="fas fa-home"></i> Beranda
-                    </a>
-                    <a class="nav-link" href="#children" onclick="showSection('children')">
-                        <i class="fas fa-child"></i> Anak Saya
-                    </a>
-                    <a class="nav-link" href="#reports" onclick="showSection('reports')">
-                        <i class="fas fa-chart-line"></i> Laporan Emosi
-                    </a>
-                    <a class="nav-link" href="#insights" onclick="showSection('insights')">
-                        <i class="fas fa-lightbulb"></i> Insight & Tips
-                    </a>
-                    <a class="nav-link" href="#profile" onclick="showSection('profile')">
-                        <i class="fas fa-user"></i> Profil
-                    </a>
-                    <a class="nav-link" href="#" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </nav>
+                    <nav class="nav flex-column">
+                        <a class="nav-link active" href="#home" onclick="showSection('home', this)">
+                            <i class="fas fa-home"></i> Beranda
+                        </a>
+                        <a class="nav-link" href="#children" onclick="showSection('children', this)">
+                            <i class="fas fa-child"></i> Anak Saya
+                        </a>
+                        <a class="nav-link" href="#reports" onclick="showSection('reports', this)">
+                            <i class="fas fa-chart-line"></i> Laporan Emosi
+                        </a>
+                        <a class="nav-link" href="#insights" onclick="showSection('insights', this)">
+                            <i class="fas fa-lightbulb"></i> Insight & Tips
+                        </a>
+                        <a class="nav-link" href="#confidence" onclick="showSection('confidence', this)">
+                            <i class="fas fa-chart-line"></i> Kepercayaan Real-time
+                        </a>
+                        <a class="nav-link" href="#profile" onclick="showSection('profile', this)">
+                            <i class="fas fa-user"></i> Profil
+                        </a>
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </nav>
             </div>
             
             <!-- Main Content -->
@@ -595,7 +613,7 @@
                     <div>
                         <h2 class="page-title" id="pageTitle">Beranda</h2>
                         <p class="welcome-text">Pantau perkembangan emosi anak Anda</p>
-                    </div>
+                        </div>
                     <div class="user-info">
                         <i class="fas fa-user-circle me-2"></i>
                         Selamat datang, <strong id="userName">Orang Tua</strong>
@@ -665,7 +683,7 @@
                                             <i class="fas fa-info-circle"></i>
                                             <span>Anak Anda, Rina, menunjukkan peningkatan emosi positif hari ini.</span>
                                             <div class="notification-date">2 jam yang lalu</div>
-                                        </div>
+                                    </div>
                                         <div class="notification-item">
                                             <i class="fas fa-calendar-check"></i>
                                             <span>Sesi emosi mingguan telah tersedia.</span>
@@ -794,6 +812,36 @@
                     </div>
                 </div>
                 
+                <!-- Real-time Confidence Indicators Section -->
+                <div id="confidenceSection" class="section">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-chart-line"></i> Indikator Kepercayaan Real-time</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="confidenceIndicators">
+                                        <p class="text-muted">Menunggu data emosi...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-heart"></i> Emosi Saat Ini</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="currentEmotion">
+                                        <p class="text-muted">Tidak ada data emosi terbaru</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Profile Section -->
                 <div id="profileSection" class="section" style="display: none;">
                     <div class="card">
@@ -810,6 +858,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         let emotionChart = null;
         let currentUser = null;
@@ -840,17 +889,33 @@
             loadChildren();
             initializeEmotionChart();
             initializeDistributionCharts();
+            initializeRealtime();
         });
         
         // Navigation
-        function showSection(section) {
+        function showSection(section, clickedElement = null) {
             // Hide all sections
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             
             // Show selected section
-            document.getElementById(section + 'Section').style.display = 'block';
-            event.target.classList.add('active');
+            const targetSection = document.getElementById(section + 'Section');
+            if (targetSection) {
+                console.log(`Showing section: ${section}Section`);
+                targetSection.style.display = 'block';
+            } else {
+                console.error(`Section ${section}Section not found`);
+            }
+
+            // Add active class to the clicked element or find by href
+            if (clickedElement && clickedElement.classList.contains('nav-link')) {
+                clickedElement.classList.add('active');
+            } else {
+                const link = document.querySelector(`.nav-link[href="#${section}"]`);
+                if (link) {
+                    link.classList.add('active');
+                }
+            }
             
             // Update page title
             const titles = {
@@ -858,61 +923,120 @@
                 'children': 'Anak Saya',
                 'reports': 'Laporan Emosi',
                 'insights': 'Insight & Tips',
+                'confidence': 'Kepercayaan Real-time',
                 'profile': 'Profil'
             };
             document.getElementById('pageTitle').textContent = titles[section];
         }
         
-        // Load dashboard data
+        // Load dashboard data - Enhanced version
         async function loadDashboardData() {
             try {
-                const response = await fetch('/api/dashboard/parent/stats', {
+                showLoading('dashboardStats', 'Memuat data dashboard...');
+                
+                const response = await safeFetch('/api/dashboard/parent/stats', {
                     headers: {
                         'Authorization': 'Bearer ' + localStorage.getItem('access_token')
                     }
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    document.getElementById('totalChildren').textContent = data.total_children || 0;
-                    document.getElementById('avgEmotion').textContent = data.avg_emotion || '-';
-                    document.getElementById('weeklySessions').textContent = data.weekly_sessions || 0;
-                    document.getElementById('positiveTrend').textContent = (data.positive_trend || 0) + '%';
-                    
-                    // Update emotion chart
-                    if (data.emotion_data) {
-                        updateEmotionChart(data.emotion_data);
-                    }
+                const data = await response.json();
+                
+                // Update dashboard stats with fallback values
+                document.getElementById('totalChildren').textContent = data.total_children || 0;
+                document.getElementById('avgEmotion').textContent = data.avg_emotion || '-';
+                document.getElementById('weeklySessions').textContent = data.weekly_sessions || 0;
+                document.getElementById('positiveTrend').textContent = (data.positive_trend || 0) + '%';
+                
+                // Update emotion chart
+                if (data.emotion_data) {
+                    updateEmotionChart(data.emotion_data);
                 }
+                
+                showNotification('Data dashboard berhasil dimuat', 'success', 3000);
+                
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                showNotification('Gagal memuat data dashboard', 'danger');
+            } finally {
+                hideLoading('dashboardStats', 'Dashboard');
             }
         }
         
-        // Load children data
+        // Load children data - Enhanced version
         async function loadChildren() {
             try {
-                const response = await fetch('/api/parent/children', {
+                // Tampilkan section children terlebih dahulu
+                showSection('children');
+                
+                showLoading('childrenSection', 'Memuat data anak...');
+                
+                const response = await safeFetch('/api/parent/children', {
                     headers: {
                         'Authorization': 'Bearer ' + localStorage.getItem('access_token')
                     }
                 });
                 
-                if (response.ok) {
-                    const children = await response.json();
+                const responseData = await response.json();
+                
+                // Handle response format yang mungkin berbeda
+                let children = [];
+                if (responseData.children) {
+                    children = responseData.children;
+                } else if (Array.isArray(responseData)) {
+                    children = responseData;
+                } else {
+                    children = [];
+                }
+                
+                console.log('Children data received:', children);
+                if (children && children.length > 0) {
+                    console.log('Calling displayChildren with', children.length, 'children');
                     displayChildren(children);
                     populateChildSelect(children);
+                    showNotification(`Data ${children.length} anak berhasil dimuat`, 'success', 3000);
+                } else {
+                    console.log('No children data, showing empty state');
+                    showNotification('Belum ada data anak yang terdaftar', 'info');
+                    displayChildren([]);
+                    populateChildSelect([]);
                 }
+                
             } catch (error) {
                 console.error('Error loading children:', error);
+                showNotification('Gagal memuat data anak', 'danger');
+                displayChildren([]);
+                populateChildSelect([]);
+            } finally {
+                hideLoading('childrenSection', 'Data Anak');
             }
         }
         
         function displayChildren(children) {
-            const container = document.getElementById('childrenList');
+            console.log('displayChildren called with:', children);
+            let container = document.getElementById('childrenList');
+            
+            // Cek apakah container ada
+            if (!container) {
+                console.error('Element childrenList tidak ditemukan');
+                // Pastikan section children ditampilkan lalu retry render pada frame berikutnya
+                try { showSection('children'); } catch (e) {}
+                setTimeout(() => {
+                    const retryContainer = document.getElementById('childrenList');
+                    if (retryContainer) {
+                        displayChildren(children);
+                    } else {
+                        console.error('childrenList tetap tidak ditemukan setelah retry');
+                    }
+                }, 0);
+                return;
+            }
+            
+            console.log('Container found:', container);
             container.innerHTML = '';
             
-            (children || []).forEach(child => {
+            (children || []).forEach((child, index) => {
+                console.log(`Processing child ${index}:`, child);
                 const div = document.createElement('div');
                 div.className = 'col-md-6 col-lg-4';
                 div.innerHTML = `
@@ -955,6 +1079,13 @@
         
         function populateChildSelect(children) {
             const select = document.getElementById('childSelect');
+            
+            // Cek apakah select element ada
+            if (!select) {
+                console.error('Element childSelect tidak ditemukan');
+                return;
+            }
+            
             select.innerHTML = '<option value="">Pilih anak...</option>';
             (children || []).forEach(child => {
                 const option = document.createElement('option');
@@ -964,28 +1095,47 @@
             });
         }
         
-        // Load reports
+        // Load reports - Enhanced version
         async function loadReports() {
             const childId = document.getElementById('childSelect').value;
             const period = document.getElementById('periodSelect').value;
             
             if (!childId) {
-                alert('Pilih anak terlebih dahulu!');
+                showNotification('Pilih anak terlebih dahulu!', 'warning');
                 return;
             }
             
             try {
-                const res = await fetch(`/api/parent/reports/${childId}?period=${period}`, {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+                // Tampilkan section reports terlebih dahulu
+                showSection('reports');
+                
+                showLoading('reportsSection', 'Memuat laporan...');
+                
+                const response = await safeFetch(`/api/parent/reports/${childId}?period=${period}`, {
+                    headers: { 
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token') 
+                    }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    displayEmotionTimeline(data.timeline || []);
-                    // Update per-child distribution alongside timeline
-                    fetchChildDistribution(childId, period);
+                
+                const data = await response.json();
+                
+                if (data.timeline && data.timeline.length > 0) {
+                    displayEmotionTimeline(data.timeline);
+                    showNotification(`Laporan ${data.timeline.length} data berhasil dimuat`, 'success', 3000);
+                } else {
+                    showNotification('Tidak ada data laporan untuk periode ini', 'info');
+                    displayEmotionTimeline([]);
                 }
+                
+                // Update per-child distribution alongside timeline
+                await fetchChildDistribution(childId, period);
+                
             } catch (error) {
                 console.error('Error loading reports:', error);
+                showNotification('Gagal memuat laporan', 'danger');
+                displayEmotionTimeline([]);
+            } finally {
+                hideLoading('reportsSection', 'Laporan');
             }
         }
         
@@ -1073,34 +1223,294 @@
         
         // Child management
         function viewChildDetails(childId, childName) {
-            // Switch to reports section and preselect child, then load reports and distribution
-            const childSelect = document.getElementById('childSelect');
-            if (childSelect) {
-                childSelect.value = String(childId);
-            }
-            const titles = {
-                'home': 'Beranda',
-                'children': 'Anak Saya',
-                'reports': 'Laporan Emosi',
-                'insights': 'Insight & Tips',
-                'profile': 'Profil'
-            };
-            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            document.getElementById('reportsSection').style.display = 'block';
-            document.getElementById('pageTitle').textContent = titles['reports'];
-            // Default to current period select value
-            const period = document.getElementById('periodSelect').value || 7;
-            // Load detailed report and distributions
-            loadReports();
+            // Show child details modal
+            showChildDetailsModal(childId, childName);
+        }
+        
+        function showChildDetailsModal(childId, childName) {
+            // Get child data
+            fetch(`/api/parent/children/${childId}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'danger');
+                    return;
+                }
+                
+                const child = data;
+                const modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'childDetailsModal';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-child me-2" style="color: #fb923c;"></i>Detail Anak
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-4 text-center">
+                                        <div class="child-photo mb-3">
+                                            <img src="${child.photo_path ? `/static/${child.photo_path}` : '/static/default-avatar.png'}" 
+                                                 class="img-fluid rounded-circle" 
+                                                 style="width: 150px; height: 150px; object-fit: cover;"
+                                                 alt="Child Photo"
+                                                 onerror="this.src='/static/default-avatar.png'">
+                                        </div>
+                                        <h6 class="text-muted">${child.student_code}</h6>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Nama Lengkap:</strong></div>
+                                            <div class="col-sm-8">${child.full_name}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Kelas:</strong></div>
+                                            <div class="col-sm-8">${child.class_name}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Tanggal Lahir:</strong></div>
+                                            <div class="col-sm-8">${child.birth_date || 'Tidak diisi'}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Guru:</strong></div>
+                                            <div class="col-sm-8">${child.teacher_name || 'Tidak diketahui'}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Status:</strong></div>
+                                            <div class="col-sm-8">
+                                                <span class="badge ${child.is_active ? 'bg-success' : 'bg-danger'}">
+                                                    ${child.is_active ? 'Aktif' : 'Tidak Aktif'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Emosi Terakhir:</strong></div>
+                                            <div class="col-sm-8">
+                                                <span class="badge bg-info">${child.last_emotion || 'Belum terdeteksi'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-4"><strong>Total Deteksi:</strong></div>
+                                            <div class="col-sm-8">${child.total_detections || 0} kali</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Recent Emotions Chart -->
+                                <div class="mt-4">
+                                    <h6><i class="fas fa-chart-line me-2"></i>Grafik Emosi Terbaru</h6>
+                                    <canvas id="childEmotionChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                <button type="button" class="btn btn-primary" onclick="downloadChildReport(${child.id})">
+                                    <i class="fas fa-download me-2"></i>Download Laporan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                
+                // Load emotion chart after modal is shown
+                modal.addEventListener('shown.bs.modal', () => {
+                    setTimeout(() => {
+                        loadChildEmotionChart(child.id);
+                    }, 100);
+                });
+                
+                // Remove modal from DOM when hidden
+                modal.addEventListener('hidden.bs.modal', () => {
+                    document.body.removeChild(modal);
+                });
+            })
+            .catch(error => {
+                showNotification('Error: ' + error.message, 'danger');
+            });
+        }
+        
+        function loadChildEmotionChart(childId) {
+            console.log('Loading emotion chart for child:', childId);
+            
+            fetch(`/api/parent/children/${childId}/emotions`, {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            })
+            .then(response => {
+                console.log('Emotion API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Emotion data received:', data);
+                
+                if (data.error) {
+                    console.error('Error loading emotion data:', data.error);
+                    showNotification('Gagal memuat data emosi: ' + data.error, 'danger');
+                    return;
+                }
+                
+                // Create chart
+                const ctx = document.getElementById('childEmotionChart');
+                if (ctx) {
+                    console.log('Creating chart with canvas:', ctx);
+                    
+                    // Destroy existing chart if any
+                    if (window.childEmotionChartInstance) {
+                        window.childEmotionChartInstance.destroy();
+                    }
+                    
+                    window.childEmotionChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels || [],
+                            datasets: [{
+                                label: 'Jumlah Deteksi Emosi',
+                                data: data.values || [],
+                                borderColor: '#fb923c',
+                                backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('Chart created successfully');
+                } else {
+                    console.error('Canvas element childEmotionChart not found');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading emotion chart:', error);
+                showNotification('Gagal memuat grafik emosi', 'danger');
+            });
         }
         
         function downloadReport(format) {
             const childId = document.getElementById('childSelect').value;
             if (!childId) {
-                alert('Pilih anak terlebih dahulu!');
+                showNotification('Pilih anak terlebih dahulu!', 'warning');
                 return;
             }
-            alert(`Download laporan ${format.toUpperCase()} akan segera tersedia!`);
+            
+            const period = document.getElementById('periodSelect').value || 7;
+            
+            // Show loading
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+            downloadBtn.disabled = true;
+            
+            fetch(`/api/parent/reports/${childId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    format: format,
+                    period: parseInt(period)
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Download failed');
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `laporan_anak_${format}_${new Date().toISOString().split('T')[0]}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification(`Laporan ${format.toUpperCase()} berhasil didownload!`, 'success');
+            })
+            .catch(error => {
+                showNotification('Error: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            });
+        }
+        
+        function downloadChildReport(childId) {
+            const format = 'pdf'; // Default to PDF
+            const period = 30; // Last 30 days
+            
+            // Show loading
+            showNotification('Generating report...', 'info');
+            
+            fetch(`/api/parent/reports/${childId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    format: format,
+                    period: period
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Download failed');
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `laporan_anak_${format}_${new Date().toISOString().split('T')[0]}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification(`Laporan ${format.toUpperCase()} berhasil didownload!`, 'success');
+            })
+            .catch(error => {
+                showNotification('Error: ' + error.message, 'danger');
+            });
         }
         
         // Sidebar toggle function
@@ -1118,6 +1528,195 @@
             } else {
                 sidebarToggle.style.display = 'flex';
             }
+        }
+
+        // Function to update real-time emotion stats display
+        function updateRealtimeEmotionStats(data) {
+            try {
+                // Update emotion distribution chart if visible
+                if (typeof updateEmotionChart === 'function') {
+                    updateEmotionChart(data.emotion_stats);
+                }
+                
+                // Update confidence indicators
+                updateConfidenceIndicators(data.emotion_stats);
+                
+                // Update current emotion display
+                if (data.current_emotion) {
+                    updateCurrentEmotionDisplay(data.current_emotion, data.emotion_stats[data.current_emotion]);
+                }
+                
+            } catch (error) {
+                console.error('Error updating real-time emotion stats:', error);
+            }
+        }
+        
+        // Function to update confidence indicators
+        function updateConfidenceIndicators(emotionStats) {
+            const confidenceContainer = document.getElementById('confidenceIndicators');
+            if (!confidenceContainer) return;
+            
+            let html = '<h4>Indikator Kepercayaan Real-time</h4>';
+            
+            for (const [emotion, stats] of Object.entries(emotionStats)) {
+                const confidence = stats.avg_confidence || 0;
+                const confidencePercent = Math.round(confidence * 100);
+                const confidenceClass = confidence > 0.7 ? 'high' : confidence > 0.4 ? 'medium' : 'low';
+                
+                html += `
+                    <div class="confidence-item">
+                        <span class="emotion-label">${emotion}:</span>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill ${confidenceClass}" style="width: ${confidencePercent}%"></div>
+                        </div>
+                        <span class="confidence-text">${confidencePercent}%</span>
+                    </div>
+                `;
+            }
+            
+            confidenceContainer.innerHTML = html;
+        }
+        
+        // Function to update current emotion display
+        function updateCurrentEmotionDisplay(emotion, stats) {
+            const currentEmotionDiv = document.getElementById('currentEmotion');
+            if (!currentEmotionDiv) return;
+            
+            const confidence = stats.avg_confidence || 0;
+            const confidencePercent = Math.round(confidence * 100);
+            
+            currentEmotionDiv.innerHTML = `
+                <div class="current-emotion-display">
+                    <h3>Emosi Saat Ini: ${emotion}</h3>
+                    <div class="confidence-info">
+                        <span>Kepercayaan: ${confidencePercent}%</span>
+                        <span>Total Deteksi: ${stats.count}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initializeRealtime(){
+            try{
+                const socket = io();
+                socket.on('connected', ()=>{});
+                const token = localStorage.getItem('access_token');
+                socket.emit('join_parent', { token });
+                socket.on('emotion_log_created', (evt)=>{
+                    // Update quick stats and charts when new emotion arrives
+                    // Refresh overall distribution (period from current reports if visible, else 7)
+                    const period = parseInt((document.getElementById('periodSelect')?.value)||'7',10);
+                    fetchOverallDistribution(period);
+                    const childId = document.getElementById('childSelect')?.value;
+                    if(childId){ fetchChildDistribution(childId, period); }
+                    
+                    // Show real-time notification
+                    showRealtimeNotification({
+                        type: 'emotion_detected',
+                        message: `Emosi terdeteksi: ${evt.emotion}`,
+                        emotion: evt.emotion,
+                        student_id: evt.student_id
+                    });
+                });
+                
+                // Handle real-time emotion aggregation updates
+                socket.on('emotion_aggregation_update', (data) => {
+                    console.log('Emotion aggregation update:', data);
+                    
+                    // Update real-time emotion stats display
+                    updateRealtimeEmotionStats(data);
+                    
+                    // Show aggregation notification if significant change
+                    if (data.total_detections > 0) {
+                        const dominantEmotion = Object.keys(data.emotion_stats).reduce((a, b) => 
+                            data.emotion_stats[a].count > data.emotion_stats[b].count ? a : b
+                        );
+                        
+                        showRealtimeNotification({
+                            type: 'emotion_summary',
+                            message: `Ringkasan emosi: ${dominantEmotion} (${data.total_detections} deteksi)`,
+                            emotion: dominantEmotion,
+                            student_id: data.student_id,
+                            stats: data.emotion_stats
+                        });
+                    }
+                });
+                
+                socket.on('child_activity', (data) => {
+                    showRealtimeNotification({
+                        type: 'child_activity',
+                        message: data.message,
+                        child_name: data.child_name
+                    });
+                });
+                
+                socket.on('session_update', (data) => {
+                    showRealtimeNotification({
+                        type: 'session_update',
+                        message: data.message,
+                        session_name: data.session_name
+                    });
+                });
+            }catch(e){ console.warn('socket init failed', e); }
+        }
+        
+        function showRealtimeNotification(data) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'toast align-items-center text-white bg-primary border-0';
+            notification.setAttribute('role', 'alert');
+            notification.setAttribute('aria-live', 'assertive');
+            notification.setAttribute('aria-atomic', 'true');
+            
+            let iconClass = 'fas fa-bell';
+            let bgClass = 'bg-primary';
+            
+            if (data.type === 'emotion_detected') {
+                iconClass = 'fas fa-heart';
+                bgClass = 'bg-success';
+            } else if (data.type === 'child_activity') {
+                iconClass = 'fas fa-child';
+                bgClass = 'bg-info';
+            } else if (data.type === 'session_update') {
+                iconClass = 'fas fa-play';
+                bgClass = 'bg-warning';
+            }
+            
+            notification.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="${iconClass} me-2"></i>
+                        ${data.message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to notification container
+            let container = document.getElementById('notificationContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notificationContainer';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            
+            container.appendChild(notification);
+            
+            // Show notification
+            const bsToast = new bootstrap.Toast(notification, {
+                autohide: true,
+                delay: 5000
+            });
+            bsToast.show();
+            
+            // Remove from DOM after hiding
+            notification.addEventListener('hidden.bs.toast', () => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            });
         }
 
         // Initialize distribution charts (overall & per-child)
@@ -1181,8 +1780,492 @@
                 }
             }catch(err){ console.error('fetchChildDistribution error', err); }
         }
-
+        
         // Logout
+        // Profile management
+        function editProfile() {
+            // Get current user data
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'editProfileModal';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-user-edit me-2" style="color: #fb923c;"></i>Edit Profil
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editProfileForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="editFullName" class="form-label">Nama Lengkap</label>
+                                        <input type="text" class="form-control" id="editFullName" value="${user.full_name}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="editEmail" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="editEmail" value="${user.email}" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="editPhone" class="form-label">No. Telepon</label>
+                                        <input type="tel" class="form-control" id="editPhone" value="${user.phone || ''}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="editUsername" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="editUsername" value="${user.username}" readonly>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="currentPassword" class="form-label">Password Saat Ini</label>
+                                    <input type="password" class="form-control" id="currentPassword" placeholder="Masukkan password saat ini">
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="newPassword" class="form-label">Password Baru</label>
+                                        <input type="password" class="form-control" id="newPassword" placeholder="Masukkan password baru">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="confirmPassword" class="form-label">Konfirmasi Password</label>
+                                        <input type="password" class="form-control" id="confirmPassword" placeholder="Konfirmasi password baru">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="button" class="btn btn-primary" onclick="saveProfile()">
+                                <i class="fas fa-save me-2"></i>Simpan Perubahan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+        
+        function saveProfile() {
+            const formData = {
+                full_name: document.getElementById('editFullName').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                current_password: document.getElementById('currentPassword').value,
+                new_password: document.getElementById('newPassword').value,
+                confirm_password: document.getElementById('confirmPassword').value
+            };
+            
+            // Validate form
+            if (!formData.full_name || !formData.email) {
+                showNotification('Nama lengkap dan email harus diisi!', 'warning');
+                return;
+            }
+            
+            if (formData.new_password && formData.new_password !== formData.confirm_password) {
+                showNotification('Password baru dan konfirmasi tidak sama!', 'warning');
+                return;
+            }
+            
+            // Show loading
+            const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+            saveBtn.disabled = true;
+            
+            fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showNotification('Error: ' + data.error, 'danger');
+                } else {
+                    showNotification('Profil berhasil diperbarui!', 'success');
+                    
+                    // Update local storage
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    user.full_name = formData.full_name;
+                    user.email = formData.email;
+                    user.phone = formData.phone;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Update UI
+                    document.getElementById('userName').textContent = formData.full_name;
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                    modal.hide();
+                }
+            })
+            .catch(error => {
+                showNotification('Error: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
+
+        // Enhanced Error Handling System
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+            
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'danger' ? 'fa-exclamation-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-bell';
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${icon} me-2"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after specified duration
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+
+        // Enhanced error handling
+        function handleApiError(error, context = '') {
+            console.error(`API Error ${context}:`, error);
+            let message = 'Terjadi kesalahan pada sistem';
+            
+            if (error.response) {
+                // Server responded with error status
+                message = `Error ${error.response.status}: ${error.response.statusText}`;
+            } else if (error.request) {
+                // Request was made but no response received
+                message = 'Tidak dapat terhubung ke server';
+            } else {
+                // Something else happened
+                message = error.message || 'Terjadi kesalahan yang tidak diketahui';
+            }
+            
+            showNotification(message, 'danger', 8000);
+        }
+
+        // Global error handler for fetch requests
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+                    throw new Error(errorMessage);
+                }
+                return response;
+            } catch (error) {
+                handleApiError(error, `fetching ${url}`);
+                throw error;
+            }
+        }
+
+        // Loading state management
+        function showLoading(elementId, text = 'Memuat...') {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            // Jangan hancurkan konten section. Tambahkan overlay loading di atasnya
+            let overlay = element.querySelector('.section-loading');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'section-loading';
+                overlay.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${text}`;
+                element.style.position = element.style.position || 'relative';
+                element.appendChild(overlay);
+            } else {
+                overlay.innerHTML = `<i class=\"fas fa-spinner fa-spin me-2\"></i>${text}`;
+                overlay.style.display = 'flex';
+            }
+        }
+
+        function hideLoading(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            const overlay = element.querySelector('.section-loading');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
+
+        // Enhanced child distribution fetching with error handling
+        async function fetchChildDistribution(childId, period) {
+            try {
+                const response = await safeFetch(`/api/parent/child/${childId}/distribution?period=${period}`, {
+                    headers: { 
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token') 
+                    }
+                });
+                
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                const dist = data.distribution || {};
+                const ordered = ['happy','sad','angry','fear','surprise','disgust','neutral'].map(k => dist[k] || 0);
+                
+                if (childDistributionChart) {
+                    childDistributionChart.data.datasets[0].data = ordered;
+                    childDistributionChart.update();
+                }
+                
+                // Also render concise per-day dominant timeline under existing timeline if the same child/period is selected
+                if (Array.isArray(data.timeline)) {
+                    const container = document.getElementById('emotionTimeline');
+                    const sep = document.createElement('hr');
+                    container.appendChild(sep);
+                    const title = document.createElement('h6');
+                    title.textContent = 'Ringkasan Harian (Emosi Dominan)';
+                    container.appendChild(title);
+                    data.timeline.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'timeline-item';
+                        div.innerHTML = `<div class="d-flex justify-content-between align-items-center"><div><strong>${item.date}</strong></div><div><span class="emotion-badge emotion-${item.dominant || 'neutral'}">${(item.dominant || 'neutral')}</span></div></div>`;
+                        container.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error('fetchChildDistribution error', error);
+                showNotification('Gagal memuat distribusi emosi', 'warning');
+            }
+        }
+
+        // Enhanced overall distribution fetching with error handling
+        async function fetchOverallDistribution(period) {
+            try {
+                const response = await safeFetch(`/api/parent/distribution?period=${period}`, {
+                    headers: { 
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token') 
+                    }
+                });
+                
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                const dist = data.distribution || {};
+                const ordered = ['happy','sad','angry','fear','surprise','disgust','neutral'].map(k => dist[k] || 0);
+                
+                if (overallDistributionChart) {
+                    overallDistributionChart.data.datasets[0].data = ordered;
+                    overallDistributionChart.update();
+                }
+            } catch (error) {
+                console.error('fetchOverallDistribution error', error);
+                showNotification('Gagal memuat distribusi keseluruhan', 'warning');
+            }
+        }
+
+        // Enhanced download report with error handling
+        function downloadReport(format) {
+            const childId = document.getElementById('childSelect').value;
+            if (!childId) {
+                showNotification('Pilih anak terlebih dahulu!', 'warning');
+                return;
+            }
+            
+            const period = document.getElementById('periodSelect').value || 7;
+            
+            // Show loading
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.innerHTML;
+            showLoading('downloadBtn', 'Generating...');
+            
+            fetch(`/api/parent/reports/${childId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    format: format,
+                    period: parseInt(period)
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Download failed');
+                    });
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `laporan_anak_${format}_${new Date().toISOString().split('T')[0]}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification(`Laporan ${format.toUpperCase()} berhasil didownload!`, 'success');
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                showNotification('Error: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                hideLoading('downloadBtn', originalText);
+            });
+        }
+
+        // Enhanced child report download with error handling
+        function downloadChildReport(childId) {
+            const format = 'pdf'; // Default to PDF
+            const period = 30; // Last 30 days
+            
+            // Show loading
+            showNotification('Generating report...', 'info');
+            
+            fetch(`/api/parent/reports/${childId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    format: format,
+                    period: period
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Download failed');
+                    });
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `laporan_anak_${format}_${new Date().toISOString().split('T')[0]}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showNotification(`Laporan ${format.toUpperCase()} berhasil didownload!`, 'success');
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                showNotification('Error: ' + error.message, 'danger');
+            });
+        }
+
+        // Enhanced profile management with error handling
+        function saveProfile() {
+            const formData = {
+                full_name: document.getElementById('editFullName').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                current_password: document.getElementById('currentPassword').value,
+                new_password: document.getElementById('newPassword').value,
+                confirm_password: document.getElementById('confirmPassword').value
+            };
+            
+            // Validate form
+            if (!formData.full_name || !formData.email) {
+                showNotification('Nama lengkap dan email harus diisi!', 'warning');
+                return;
+            }
+            
+            if (formData.new_password && formData.new_password !== formData.confirm_password) {
+                showNotification('Password baru dan konfirmasi tidak sama!', 'warning');
+                return;
+            }
+            
+            // Show loading
+            const saveBtn = document.querySelector('#editProfileModal .btn-primary');
+            const originalText = saveBtn.innerHTML;
+            showLoading('saveProfileBtn', 'Menyimpan...');
+            
+            fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Update failed');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showNotification('Profil berhasil diperbarui!', 'success');
+                
+                // Update local storage
+                const user = JSON.parse(localStorage.getItem('user'));
+                user.full_name = formData.full_name;
+                user.email = formData.email;
+                user.phone = formData.phone;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Update UI
+                document.getElementById('userName').textContent = formData.full_name;
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                modal.hide();
+            })
+            .catch(error => {
+                console.error('Profile update error:', error);
+                showNotification('Error: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                hideLoading('saveProfileBtn', originalText);
+            });
+        }
+
+        // Global error handler for unhandled errors
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+            showNotification('Terjadi kesalahan yang tidak terduga', 'danger');
+        });
+
+        // Global error handler for unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            showNotification('Terjadi kesalahan pada operasi asinkron', 'danger');
+        });
+
         function logout() {
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');
